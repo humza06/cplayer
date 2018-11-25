@@ -3,14 +3,20 @@ library cplayer;
 import 'dart:async';
 
 import 'package:cplayer/ui/cplayer_progress.dart';
+import 'package:cplayer/util/chromecast_discover.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:screen/screen.dart';
 import 'package:video_player/video_player.dart';
 
+import 'package:flutter_mdns_plugin/flutter_mdns_plugin.dart';
+import 'package:dart_chromecast/casting/cast.dart';
+
 
 class CPlayer extends StatefulWidget {
 
+  final String mimeType;
+  final String title;
   final String url;
   final Color primaryColor;
   final Color accentColor;
@@ -18,6 +24,8 @@ class CPlayer extends StatefulWidget {
 
   CPlayer({
     Key key,
+    @required this.mimeType,
+    @required this.title,
     @required this.url,
     this.primaryColor,
     this.accentColor,
@@ -30,8 +38,6 @@ class CPlayer extends StatefulWidget {
 }
 
 class CPlayerState extends State<CPlayer> {
-
-  static const _platform = const MethodChannel('xyz.apollotv/casting');
 
   VideoPlayerController _controller;
   bool _isPlaying = false;
@@ -47,6 +53,8 @@ class CPlayerState extends State<CPlayer> {
   @override
   void initState(){
     super.initState();
+
+    print(widget.url);
 
     // Disable screen rotation and UI
     SystemChrome.setEnabledSystemUIOverlays([]);
@@ -210,70 +218,27 @@ class CPlayerState extends State<CPlayer> {
                                       )
                                   ),
 
+                                  /* Aspect Ratio */
                                   new Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 5.0),
+                                      padding: EdgeInsets.symmetric(horizontal: 15.0),
                                       child: new InkWell(
-                                          onTap: (){
-                                            if(!_controller.value.isPlaying) {
-                                              return;
-                                            }
-
-                                            if(_aspectRatio < RATIOS.length - 1) {
-                                              _aspectRatio++;
-                                            }else{
-                                              _aspectRatio = 0;
-                                            }
-
-                                            /* BEGIN: show center panel */
-                                            _getCenterPanel = (){
-                                              return Container(
-                                                  child: new Padding(
-                                                      padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
-                                                      child: Column(
-                                                        mainAxisSize: MainAxisSize.min,
-
-                                                        children: <Widget>[
-                                                          Icon(
-                                                            Icons.aspect_ratio,
-                                                            size: 48,
-                                                          ),
-
-                                                          Padding(
-                                                              padding: EdgeInsets.only(top: 10),
-                                                              child: Text(
-                                                                  "Aspect Ratio",
-                                                                  style: TextStyle(
-                                                                      fontFamily: "GlacialIndifference",
-                                                                      fontSize: 20
-                                                                  )
-                                                              )
-                                                          ),
-
-                                                          Padding(
-                                                              padding: EdgeInsets.only(top: 5),
-                                                              child: Text(RATIOS[_aspectRatio])
-                                                          )
-                                                        ],
-                                                      )
-                                                  ),
-
-                                                  decoration: BoxDecoration(
-                                                      color: const Color(0xAF000000),
-                                                      borderRadius: BorderRadius.circular(5.0)
-                                                  )
-                                              );
-                                            };
-
-                                            new Timer(Duration(seconds: 5), (){
-                                              _getCenterPanel = (){
-                                                return Container();
-                                              };
-                                            });
-                                            /* END: show center panel */
-                                          },
+                                          onTap: _changeAspectRatio,
                                           child: new Icon(
                                               Icons.aspect_ratio,
-                                              size: 24.0,
+                                              size: 26.0,
+                                              color: Theme.of(context).textTheme.button.color
+                                          )
+                                      )
+                                  ),
+
+                                  /* Casting Button */
+                                  new Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 15.0),
+                                      child: new InkWell(
+                                          onTap: () => _beginCastingProcess(context),
+                                          child: new Icon(
+                                              Icons.cast,
+                                              size: 26.0,
                                               color: Theme.of(context).textTheme.button.color
                                           )
                                       )
@@ -318,17 +283,6 @@ class CPlayerState extends State<CPlayer> {
     return hourString + ":" + minutesString + ":" + secondsString;
   }
 
-  ///
-  /// Casts to a Chromecast or Airplay device
-  ///
-  Future<Null> _beginCasting() async {
-    try {
-      await _platform.invokeMethod('beginCasting');
-    } on PlatformException catch (e) {
-      print("Failed to begin casting on platform: ${e.message}");
-    }
-  }
-
   static const Map<int, String> RATIOS = {
     0: "Default",
     1: "Fit to Screen",
@@ -362,6 +316,222 @@ class CPlayerState extends State<CPlayer> {
       default:
         return controller.value.aspectRatio;
     }
+  }
+
+  ///
+  /// Change Aspect Ratio
+  ///
+  void _changeAspectRatio(){
+    if(!_controller.value.isPlaying) {
+      return;
+    }
+
+    if(_aspectRatio < RATIOS.length - 1) {
+      _aspectRatio++;
+    }else{
+      _aspectRatio = 0;
+    }
+
+    /* BEGIN: show center panel */
+    _getCenterPanel = (){
+      return Container(
+        child: new Padding(
+            padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+
+              children: <Widget>[
+                Icon(
+                  Icons.aspect_ratio,
+                  size: 48,
+                ),
+
+                Padding(
+                    padding: EdgeInsets.only(top: 10),
+                    child: Text(
+                        "Aspect Ratio",
+                        style: TextStyle(
+                            fontFamily: "GlacialIndifference",
+                            fontSize: 20
+                        )
+                    )
+                ),
+
+                Padding(
+                    padding: EdgeInsets.only(top: 5),
+                    child: Text(RATIOS[_aspectRatio])
+                )
+              ],
+            )
+        ),
+
+        decoration: BoxDecoration(
+            color: const Color(0xAF000000),
+            borderRadius: BorderRadius.circular(5.0)
+        )
+      );
+    };
+
+    new Timer(Duration(seconds: 5), (){
+      _getCenterPanel = (){
+        return Container();
+      };
+    });
+    /* END: show center panel */
+  }
+
+  ///
+  /// Start the casting process.
+  /// This method looks for casting devices on your network, then passes them on
+  /// to the [_chooseCastDevice] method.
+  ///
+  void _beginCastingProcess(BuildContext context) {
+    print("Begin casting process");
+
+    // Define service discovery protocol;.
+    const String service_type = "_googlecast._tcp";
+    const int discovery_time = 5;
+
+    // Define callbacks for Flutter MDNS
+    List<CastDeviceInformation> devices = [];
+    DiscoveryCallbacks callbacks = new DiscoveryCallbacks(
+        onDiscovered: (ServiceInfo info) {
+          // Unsure?
+          // print(info.toString());
+        },
+
+        onDiscoveryStarted: () {
+          print("Google Cast device discovery started.");
+        },
+
+        onDiscoveryStopped: () {
+          print("Google Cast device discovery finished.");
+        },
+
+        onResolved: (ServiceInfo info) {
+          devices.add(new CastDeviceInformation(info));
+        }
+    );
+
+    FlutterMdnsPlugin mdns = new FlutterMdnsPlugin(
+        discoveryCallbacks: callbacks);
+    Timer(Duration(seconds: 3), () => mdns.startDiscovery(service_type));
+    Timer(
+        Duration(
+            seconds: 3 + discovery_time
+        ),
+        (){
+          () async {
+            // Device information discovery (via UPNP)
+            for(CastDeviceInformation device in devices) {
+              var castSettings = await ChromecastSettings.get(
+                  device.getServiceInfo().host
+                      .replaceAll(new RegExp(r'/'), "")
+              );
+
+              device.setChromecastSettings(
+                  castSettings
+              );
+            }
+
+            // Stop MDNS discovery
+            await mdns.stopDiscovery();
+          }().then((dynamic) => _chooseCastDevice(context, devices));
+        }
+    );
+  }
+
+  void _chooseCastDevice(BuildContext context, List<CastDeviceInformation> devices){
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext modalContext){
+        return new Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            /* Bottom Sheet Title */
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 15),
+              child: Text(
+                'Choose a cast device...',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontFamily: 'GlacialIndifference'
+                ),
+              )
+            ),
+
+            ListView.builder(
+              shrinkWrap: true,
+              itemCount: devices.length,
+              itemBuilder: (BuildContext listContext, int index){
+
+                CastDeviceInformation device = devices[index];
+
+                return new ListTile(
+                    leading: new Icon(Icons.tv),
+                    title: (device.getChromecastSettings() != null) ?
+                      new Text(device.getChromecastSettings().friendlyName)
+                      : device.getServiceInfo().name,
+                    subtitle: (device.getChromecastSettings() != null) ?
+                      new Text("${device.getChromecastSettings().manufacturer} ${device.getChromecastSettings().modelName}")
+                      : "Unknown",
+                    onTap: () => startCasting(device)
+                );
+              }
+            )
+          ],
+        );
+      }
+    );
+  }
+
+  startCasting(CastDeviceInformation device) async {
+
+    CastDevice dartCast = CastDevice(
+      host: device.getServiceInfo().host
+          .replaceAll(new RegExp(r'/'), ""),
+      port: device.getServiceInfo().port,
+      type: '_googlecast._tcp'
+    );
+    CastSender dartCastSender = CastSender(dartCast);
+
+    await dartCastSender.connect();
+    dartCastSender.launch("6569632D");
+
+    dartCastSender.loadPlaylist([CastMedia(
+      contentId: widget.url,
+      title: widget.title,
+      position: 0,
+      autoPlay: true
+    )].toList(), append: false);
+
+    dartCastSender.play();
+
+  }
+
+}
+
+class CastDeviceInformation {
+
+  ServiceInfo _info;
+  ChromecastSettings _meta;
+
+  CastDeviceInformation(ServiceInfo _info){
+    this._info = _info;
+    this._meta = _meta;
+  }
+
+  ServiceInfo getServiceInfo(){
+    return _info;
+  }
+
+  void setChromecastSettings(ChromecastSettings _meta){
+    this._meta = _meta;
+  }
+
+  ChromecastSettings getChromecastSettings(){
+    return this._meta;
   }
 
 }

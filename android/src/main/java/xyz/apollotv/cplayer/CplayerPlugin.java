@@ -18,10 +18,6 @@ public class CplayerPlugin implements MethodCallHandler {
   public void onMethodCall(MethodCall call, Result result) {
     if (call.method.equals("getPlatformVersion")) {
       result.success("Android " + android.os.Build.VERSION.RELEASE);
-    } else if (call.method.equals("beginCasting")) {
-        result.notImplemented();
-    } else {
-        result.notImplemented();
     }
   }
 }
