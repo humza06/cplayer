@@ -155,108 +155,111 @@ class CPlayerState extends State<CPlayer> {
                     )
                   ),
 
-                  new AnimatedOpacity(
-                      opacity: _isControlsVisible ? 1.0 : 0.0,
-                      duration: new Duration(milliseconds: 200),
-                      child: Container(
-                          height: 52.0,
-                          color: Theme.of(context).dialogBackgroundColor,
-                          child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 10.0,
-                                  vertical: 3.0
-                              ),
-                              child: Row(
-                                children: <Widget>[
-                                  /* Play/pause button */
-                                  new Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 5.0),
-                                      child: new InkWell(
-                                          onTap: (){
-                                            if(_controller.value.isPlaying) {
-                                              _controller.pause();
-                                            }else{
-                                              _controller.play();
-                                            }
-                                          },
-                                          child: new Icon(
-                                              (_controller.value.isPlaying ?
-                                              Icons.pause :
-                                              Icons.play_arrow
-                                              ),
-                                              size: 32.0,
-                                              color: Theme.of(context).textTheme.button.color
-                                          )
-                                      )
-                                  ),
+                  new IgnorePointer(
+                    ignoring: !_isControlsVisible,
+                    child: new AnimatedOpacity(
+                        opacity: _isControlsVisible ? 1.0 : 0.0,
+                        duration: new Duration(milliseconds: 200),
+                        child: Container(
+                            height: 52.0,
+                            color: Theme.of(context).dialogBackgroundColor,
+                            child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 10.0,
+                                    vertical: 3.0
+                                ),
+                                child: Row(
+                                  children: <Widget>[
+                                    /* Play/pause button */
+                                    new Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 5.0),
+                                        child: new InkWell(
+                                            onTap: (){
+                                              if(_controller.value.isPlaying) {
+                                                _controller.pause();
+                                              }else{
+                                                _controller.play();
+                                              }
+                                            },
+                                            child: new Icon(
+                                                (_controller.value.isPlaying ?
+                                                Icons.pause :
+                                                Icons.play_arrow
+                                                ),
+                                                size: 32.0,
+                                                color: Theme.of(context).textTheme.button.color
+                                            )
+                                        )
+                                    ),
 
-                                  /* Progress Label */
-                                  new Padding(
-                                      padding: EdgeInsets.only(left: 5.0),
-                                      child: new Text(
-                                          "${formatTimestamp(
-                                              _controller.value.position.inMilliseconds
-                                          )} / ${formatTimestamp(_total)}",
-                                          maxLines: 1,
-                                          style: TextStyle(
-                                              fontSize: 14.0
-                                          )
-                                      )
-                                  ),
+                                    /* Progress Label */
+                                    new Padding(
+                                        padding: EdgeInsets.only(left: 5.0),
+                                        child: new Text(
+                                            "${formatTimestamp(
+                                                _controller.value.position.inMilliseconds
+                                            )} / ${formatTimestamp(_total)}",
+                                            maxLines: 1,
+                                            style: TextStyle(
+                                                fontSize: 14.0
+                                            )
+                                        )
+                                    ),
 
-                                  /* Progress Bar */
-                                  new Expanded(
-                                      child: new Padding(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 5.0
-                                          ),
-                                          child: new CPlayerProgress(
-                                            _controller,
-                                            activeColor: Theme.of(context).primaryColor,
-                                            inactiveColor: Theme.of(context).backgroundColor,
-                                          )
-                                      )
-                                  ),
+                                    /* Progress Bar */
+                                    new Expanded(
+                                        child: new Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 5.0
+                                            ),
+                                            child: new CPlayerProgress(
+                                              _controller,
+                                              activeColor: Theme.of(context).primaryColor,
+                                              inactiveColor: Theme.of(context).backgroundColor,
+                                            )
+                                        )
+                                    ),
 
-                                  /* Aspect Ratio */
-                                  new Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 15.0),
-                                      child: new InkWell(
-                                          onTap: _changeAspectRatio,
-                                          child: new Icon(
-                                              Icons.aspect_ratio,
-                                              size: 26.0,
-                                              color: Theme.of(context).textTheme.button.color
-                                          )
-                                      )
-                                  ),
+                                    /* Aspect Ratio */
+                                    new Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 15.0),
+                                        child: new InkWell(
+                                            onTap: _changeAspectRatio,
+                                            child: new Icon(
+                                                Icons.aspect_ratio,
+                                                size: 26.0,
+                                                color: Theme.of(context).textTheme.button.color
+                                            )
+                                        )
+                                    ),
 
-                                  /* Casting Button */
-                                  new Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 15.0),
-                                      child: new InkWell(
-                                          onTap: () => _beginCastingProcess(context),
-                                          child: new Icon(
-                                              Icons.cast,
-                                              size: 26.0,
-                                              color: Theme.of(context).textTheme.button.color
-                                          )
-                                      )
-                                  )
-                                ],
-                              )
-                          )
-                      )
+                                    /* Casting Button */
+                                    new Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 15.0),
+                                        child: new InkWell(
+                                            onTap: () => _beginCastingProcess(context),
+                                            child: new Icon(
+                                                Icons.cast,
+                                                size: 26.0,
+                                                color: Theme.of(context).textTheme.button.color
+                                            )
+                                        )
+                                    )
+                                  ],
+                                )
+                            )
+                        )
+                    ),
                   ),
 
                   new AnimatedOpacity(
-                    opacity: _controller.value.isBuffering ? 1.0 : 0.0,
-                    duration: new Duration(milliseconds: 200),
-                    child: Center(
-                        child: Container(child: CircularProgressIndicator(
-                            valueColor: new AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor)
-                        ))
-                    )
+                      opacity: _controller.value.isBuffering ? 1.0 : 0.0,
+                      duration: new Duration(milliseconds: 200),
+                      child: Center(
+                          child: Container(child: CircularProgressIndicator(
+                              valueColor: new AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor)
+                          ))
+                      )
                   ),
 
                   Center(
