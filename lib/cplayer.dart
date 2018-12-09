@@ -12,36 +12,6 @@ import 'package:video_player/video_player.dart';
 import 'package:flutter_mdns_plugin/flutter_mdns_plugin.dart';
 import 'package:dart_chromecast/casting/cast.dart';
 
-class CPlayerFactory {
-
-  static CPlayer _singleton;
-
-  static CPlayer construct({
-    mimeType,
-    title,
-    url,
-    primaryColor,
-    accentColor,
-    highlightColor
-  }){
-    if(_singleton != null){
-      print("Ignoring request: CPlayer singleton already exists!");
-      return null;
-    };
-
-    _singleton = CPlayer(
-      mimeType: mimeType,
-      title: title,
-      url: url,
-      primaryColor: primaryColor,
-      accentColor: accentColor,
-      highlightColor: highlightColor
-    );
-    return _singleton;
-  }
-
-}
-
 class CPlayer extends StatefulWidget {
 
   final String mimeType;
@@ -140,8 +110,6 @@ class CPlayerState extends State<CPlayer> {
     // Re-enable screen rotation and UI
     SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-
-    CPlayerFactory._singleton = null;
 
     // Pass to super
     super.deactivate();
