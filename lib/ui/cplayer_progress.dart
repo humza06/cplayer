@@ -49,31 +49,31 @@ class _CPlayerProgressState extends State<CPlayerProgress> {
   Widget build(BuildContext context) {
 
     _slider = new Slider(
-        value: (
-            controller.value.position != null ?
-            controller.value.position.inMilliseconds.toDouble()
-                : 0.0
-        ),
-        onChanged: (newValue){
-          controller.seekTo(new Duration(milliseconds: newValue.toInt()));
-        },
-        onChangeStart: (oldValue){
-          controller.pause();
-        },
-        onChangeEnd: (newValue){
-          controller.seekTo(new Duration(milliseconds: newValue.toInt()));
-          controller.play();
-        },
-        min: 0.0,
-        max: (
-            controller.value.duration != null ?
-            controller.value.duration.inMilliseconds.toDouble()
-                : 0.0
-        ),
-        // Watched: side of the slider between thumb and minimum value.
-        activeColor: widget.activeColor,
-        // To watch: side of the slider between thumb and maximum value.
-        inactiveColor: widget.inactiveColor
+      value: (
+          controller.value.position != null ?
+          controller.value.position.inMilliseconds.toDouble()
+              : 0.0
+      ),
+      onChanged: (newValue){
+        controller.seekTo(new Duration(milliseconds: newValue.toInt()));
+      },
+      onChangeStart: (oldValue){
+        controller.pause();
+      },
+      onChangeEnd: (newValue){
+        controller.seekTo(new Duration(milliseconds: newValue.toInt()));
+        controller.play();
+      },
+      min: 0.0,
+      max: (
+          controller.value.duration != null ?
+          controller.value.duration.inMilliseconds.toDouble()
+              : 0.0
+      ),
+      // Watched: side of the slider between thumb and minimum value.
+      activeColor: widget.activeColor,
+      // To watch: side of the slider between thumb and maximum value.
+      inactiveColor: widget.inactiveColor,
     );
     return _slider;
 

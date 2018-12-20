@@ -2,15 +2,13 @@ library cplayer;
 
 import 'dart:async';
 
+import 'package:cplayer/cast/Cast.dart';
+import 'package:cplayer/res/UI.dart';
 import 'package:cplayer/ui/cplayer_progress.dart';
-import 'package:cplayer/util/chromecast_discover.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:screen/screen.dart';
 import 'package:video_player/video_player.dart';
-
-import 'package:flutter_mdns_plugin/flutter_mdns_plugin.dart';
-import 'package:dart_chromecast/casting/cast.dart';
 
 class CPlayer extends StatefulWidget {
 
@@ -38,10 +36,12 @@ class CPlayer extends StatefulWidget {
 
 class CPlayerState extends State<CPlayer> {
 
+  Map<String, Timer> timerStates = new Map();
+  Cast _cast;
+
   VideoPlayerController _controller;
   bool _isPlaying = false;
   bool _isControlsVisible = true;
-  bool _isLoading = true;
   int _aspectRatio = 0;
   int _total = 0;
 
@@ -54,6 +54,9 @@ class CPlayerState extends State<CPlayer> {
     super.initState();
 
     print(widget.url);
+
+    // Initialise the cast driver
+    _cast = new Cast();
 
     // Disable screen rotation and UI
     SystemChrome.setEnabledSystemUIOverlays([]);
@@ -82,9 +85,6 @@ class CPlayerState extends State<CPlayer> {
       // initialized, even before the play button has been pressed.
       setState((){});
 
-      // Hide loading bar
-      _isLoading = false;
-
       // Set up controller, and autoplay.
       _controller.setLooping(false);
       _controller.setVolume(1.0);
@@ -111,6 +111,9 @@ class CPlayerState extends State<CPlayer> {
     SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
 
+    // Stop cast device discovery
+    _cast.destroy();
+
     // Pass to super
     super.deactivate();
   }
@@ -134,11 +137,14 @@ class CPlayerState extends State<CPlayer> {
         home: Scaffold(
           backgroundColor: Colors.black,
             body: Stack(
-                alignment: Alignment.bottomCenter,
+                alignment: Alignment.center,
                 children: <Widget>[
+                  // Player
                   GestureDetector(
                     onTap: (){
-                      _isControlsVisible = !_isControlsVisible;
+                      setState(() {
+                        _isControlsVisible = !_isControlsVisible;
+                      });
                     },
                     child: Center(
                         child: _controller.value.initialized
@@ -154,115 +160,303 @@ class CPlayerState extends State<CPlayer> {
                     )
                   ),
 
+                  // Controls Layer
                   new IgnorePointer(
                     ignoring: !_isControlsVisible,
                     child: new AnimatedOpacity(
                         opacity: _isControlsVisible ? 1.0 : 0.0,
                         duration: new Duration(milliseconds: 200),
-                        child: Container(
-                            height: 52.0,
-                            color: Theme.of(context).dialogBackgroundColor,
-                            child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 10.0,
-                                    vertical: 3.0
-                                ),
-                                child: Row(
+                        child: Stack(
+                          children: <Widget>[
+                            GestureDetector(
+                              onTap: (){
+                                setState(() {
+                                  _isControlsVisible = !_isControlsVisible;
+                                });
+                              },
+                              child: Container(
+                                child: PlayerGradient(),
+                                width: MediaQuery.of(context).size.width,
+                                height: MediaQuery.of(context).size.height,
+                              ),
+                            ),
+
+                            // Top Bar
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: <Widget>[
+                                Container(
+                                  height: 72,
+                                    child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 10.0,
+                                            vertical: 3.0
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.max,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: <Widget>[
+                                            Row(
+                                              children: <Widget>[
+                                                Container(
+                                                    margin: EdgeInsets.symmetric(horizontal: 10),
+                                                    child: new Material(
+                                                        color: Colors.transparent,
+                                                        borderRadius: BorderRadius.circular(100),
+                                                        child: new InkWell(
+                                                            borderRadius: BorderRadius.circular(100),
+                                                            onTap: () => Navigator.pop(context),
+                                                            child: new Padding(
+                                                              child: new Container(
+                                                                  width: 28,
+                                                                  height: 28,
+                                                                  child: new Icon(
+                                                                      Icons.arrow_back,
+                                                                      size: 28,
+                                                                      color: Colors.white
+                                                                  )
+                                                              ),
+                                                              padding: EdgeInsets.all(10),
+                                                            )
+                                                        )
+                                                    )
+                                                ),
+
+                                                // Title
+                                                new Padding(
+                                                  padding: EdgeInsets.all(20),
+                                                  child: Text(
+                                                    widget.title,
+                                                    style: TextStyle(
+                                                        fontFamily: 'GlacialIndifference',
+                                                        fontSize: 24
+                                                    ),
+                                                  ),
+                                                )
+                                              ],
+                                            ),
+
+                                            /* End Buttons */
+                                            Container(
+                                              padding: EdgeInsets.all(10),
+                                              child: Wrap(
+                                                direction: Axis.vertical,
+                                                alignment: WrapAlignment.center,
+                                                crossAxisAlignment: WrapCrossAlignment.center,
+                                                children: <Widget>[
+                                                  /* Aspect Ratio */
+                                                  Container(
+                                                    margin: EdgeInsets.symmetric(horizontal: 10),
+                                                    child: new Material(
+                                                      color: Colors.transparent,
+                                                      borderRadius: BorderRadius.circular(100),
+                                                      child: new InkWell(
+                                                          borderRadius: BorderRadius.circular(100),
+                                                          onTap: _changeAspectRatio,
+                                                          child: new Padding(
+                                                            child: new Container(
+                                                              width: 28,
+                                                              height: 28,
+                                                              child: new Icon(
+                                                                Icons.aspect_ratio,
+                                                                size: 28,
+                                                                color: Colors.white
+                                                              )
+                                                            ),
+                                                            padding: EdgeInsets.all(10),
+                                                          )
+                                                      )
+                                                  )
+                                                  ),
+
+                                                  /* Casting Button */
+                                                  Container(
+                                                      margin: EdgeInsets.symmetric(horizontal: 10),
+                                                      child: new Material(
+                                                          color: Colors.transparent,
+                                                          borderRadius: BorderRadius.circular(100),
+                                                          child: new InkWell(
+                                                              borderRadius: BorderRadius.circular(100),
+                                                              onTap: (){
+                                                                _controller.pause();
+                                                                _cast.chooseAndPlay(context, widget.url);
+                                                              },
+                                                              child: new Padding(
+                                                                child: new Container(
+                                                                    width: 28,
+                                                                    height: 28,
+                                                                    child: new Icon(
+                                                                        Icons.cast,
+                                                                        size: 28,
+                                                                        color: Colors.white
+                                                                    )
+                                                                ),
+                                                                padding: EdgeInsets.all(10),
+                                                              )
+                                                          )
+                                                      )
+                                                  ),
+
+                                                  /* Options Button */
+                                                  Container(
+                                                    margin: EdgeInsets.symmetric(horizontal: 5),
+                                                    child: new Material(
+                                                        color: Colors.transparent,
+                                                        borderRadius: BorderRadius.circular(100),
+                                                        child: new InkWell(
+                                                          borderRadius: BorderRadius.circular(100),
+                                                          onTap: (){},
+                                                          child: new Padding(
+                                                            child: new Container(
+                                                                width: 28,
+                                                                height: 28,
+                                                                child: new Icon(
+                                                                    Icons.more_vert,
+                                                                    size: 28,
+                                                                    color: Colors.white
+                                                                )
+                                                            ),
+                                                            padding: EdgeInsets.all(10),
+                                                          )
+                                                        )
+                                                    )
+                                                  )
+                                                ],
+                                              ),
+                                            )
+                                          ],
+                                        )
+                                    )
+                                )
+                              ],
+                            ),
+
+                            // Center Controls
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: <Widget>[
+                                new Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: <Widget>[
+
                                     /* Play/pause button */
-                                    new Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 5.0),
+                                    new Container(
+                                      child: new Material(
+                                        color: Colors.transparent,
+                                        clipBehavior: Clip.antiAlias,
+                                        borderRadius: BorderRadius.circular(1000),
                                         child: new InkWell(
-                                            onTap: (){
+                                          borderRadius: BorderRadius.circular(1000),
+                                          onTap: (){
+                                            setState((){
                                               if(_controller.value.isPlaying) {
                                                 _controller.pause();
                                               }else{
                                                 _controller.play();
                                               }
-                                            },
-                                            child: new Icon(
+                                            });
+                                          },
+                                          child: new Padding(
+                                            padding: EdgeInsets.all(25.0),
+                                            child: Center(
+                                              child: new Icon(
                                                 (_controller.value.isPlaying ?
-                                                Icons.pause :
-                                                Icons.play_arrow
+                                                  Icons.pause :
+                                                  Icons.play_arrow
                                                 ),
-                                                size: 32.0,
-                                                color: Theme.of(context).textTheme.button.color
+                                                size: 96.0,
+                                                color: Colors.white
+                                              )
                                             )
+                                          )
                                         )
-                                    ),
-
-                                    /* Progress Label */
-                                    new Padding(
-                                        padding: EdgeInsets.only(left: 5.0),
-                                        child: new Text(
-                                            "${formatTimestamp(
-                                                _controller.value.position.inMilliseconds
-                                            )} / ${formatTimestamp(_total)}",
-                                            maxLines: 1,
-                                            style: TextStyle(
-                                                fontSize: 14.0
-                                            )
-                                        )
-                                    ),
-
-                                    /* Progress Bar */
-                                    new Expanded(
-                                        child: new Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 5.0
-                                            ),
-                                            child: new CPlayerProgress(
-                                              _controller,
-                                              activeColor: Theme.of(context).primaryColor,
-                                              inactiveColor: Theme.of(context).backgroundColor,
-                                            )
-                                        )
-                                    ),
-
-                                    /* Aspect Ratio */
-                                    new Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 15.0),
-                                        child: new InkWell(
-                                            onTap: _changeAspectRatio,
-                                            child: new Icon(
-                                                Icons.aspect_ratio,
-                                                size: 26.0,
-                                                color: Theme.of(context).textTheme.button.color
-                                            )
-                                        )
-                                    ),
-
-                                    /* Casting Button */
-                                    new Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 15.0),
-                                        child: new InkWell(
-                                            onTap: () => _beginCastingProcess(context),
-                                            child: new Icon(
-                                                Icons.cast,
-                                                size: 26.0,
-                                                color: Theme.of(context).textTheme.button.color
-                                            )
-                                        )
+                                      ),
                                     )
+
                                   ],
                                 )
+                              ],
+                            ),
+
+                            // Bottom Bar
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: <Widget>[
+                                Container(
+                                    height: 52.0,
+                                    child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 10.0,
+                                            vertical: 3.0
+                                        ),
+                                        child: Row(
+                                          children: <Widget>[
+                                            /* Start Progress Label */
+                                            new Padding(
+                                              padding: EdgeInsets.only(left: 5.0),
+                                              child: new Text(
+                                                "${formatTimestamp(
+                                                  _controller.value.position.inMilliseconds
+                                                )}",
+                                                maxLines: 1,
+                                                style: TextStyle(
+                                                    fontSize: 14.0
+                                                )
+                                              )
+                                            ),
+
+                                            /* Progress Bar */
+                                            new Expanded(
+                                              child: new Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 5.0
+                                                ),
+                                                child: new CPlayerProgress(
+                                                  _controller,
+                                                  activeColor: Theme.of(context).primaryColor,
+                                                  inactiveColor: Colors.white54,
+                                                )
+                                              )
+                                            ),
+
+                                            /* End Progress Label */
+                                            new Padding(
+                                              padding: EdgeInsets.only(right: 5.0),
+                                              child: new Text(
+                                                "${formatTimestamp(_total)}",
+                                                maxLines: 1,
+                                                style: TextStyle(
+                                                    fontSize: 14.0
+                                                )
+                                              )
+                                            )
+                                          ],
+                                        )
+                                    )
+                                )
+                              ],
                             )
+                          ],
                         )
                     ),
                   ),
 
-                  new AnimatedOpacity(
+                  // Center Panel
+                  Center(
+                    child: (_getCenterPanel())
+                  ),
+
+                  // Buffering loader
+                  IgnorePointer(
+                    child: new AnimatedOpacity(
                       opacity: _controller.value.isBuffering ? 1.0 : 0.0,
                       duration: new Duration(milliseconds: 200),
                       child: Center(
-                          child: Container(child: CircularProgressIndicator(
-                              valueColor: new AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor)
-                          ))
+                        child: Container(child: CircularProgressIndicator(
+                          valueColor: new AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor)
+                        ))
                       )
-                  ),
-
-                  Center(
-                    child: (_getCenterPanel())
+                    ),
                   )
                 ]
             )
@@ -335,205 +529,66 @@ class CPlayerState extends State<CPlayer> {
     }
 
     /* BEGIN: show center panel */
-    _getCenterPanel = (){
-      return Container(
-        child: new Padding(
-            padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-
-              children: <Widget>[
-                Icon(
-                  Icons.aspect_ratio,
-                  size: 48,
-                ),
-
-                Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: Text(
-                        "Aspect Ratio",
-                        style: TextStyle(
-                            fontFamily: "GlacialIndifference",
-                            fontSize: 20
-                        )
-                    )
-                ),
-
-                Padding(
-                    padding: EdgeInsets.only(top: 5),
-                    child: Text(RATIOS[_aspectRatio])
-                )
-              ],
-            )
-        ),
-
-        decoration: BoxDecoration(
-            color: const Color(0xAF000000),
-            borderRadius: BorderRadius.circular(5.0)
-        )
-      );
-    };
-
-    new Timer(Duration(seconds: 5), (){
+    setState((){
       _getCenterPanel = (){
-        return Container();
+        return GestureDetector(
+          onTap: () => setState(() {
+            timerStates['centerPanel'].cancel();
+            _getCenterPanel = (){
+              return Container();
+            };
+          }),
+          child: Container(
+              child: new Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+
+                    children: <Widget>[
+                      Icon(
+                        Icons.aspect_ratio,
+                        size: 48,
+                      ),
+
+                      Padding(
+                          padding: EdgeInsets.only(top: 10),
+                          child: Text(
+                              "Aspect Ratio",
+                              style: TextStyle(
+                                  fontFamily: "GlacialIndifference",
+                                  fontSize: 20
+                              )
+                          )
+                      ),
+
+                      Padding(
+                          padding: EdgeInsets.only(top: 5),
+                          child: Text(RATIOS[_aspectRatio])
+                      )
+                    ],
+                  )
+              ),
+
+              decoration: BoxDecoration(
+                  color: const Color(0xAF000000),
+                  borderRadius: BorderRadius.circular(5.0)
+              )
+          ),
+        );
       };
     });
+
+    if(timerStates['centerPanel'] != null) {
+      timerStates['centerPanel'].cancel();
+    }
+    timerStates['centerPanel'] = new Timer(Duration(seconds: 3), (){
+      setState(() {
+        _getCenterPanel = (){
+          return Container();
+        };
+      });
+    });
     /* END: show center panel */
-  }
-
-  ///
-  /// Start the casting process.
-  /// This method looks for casting devices on your network, then passes them on
-  /// to the [_chooseCastDevice] method.
-  ///
-  void _beginCastingProcess(BuildContext context) {
-    print("Begin casting process");
-
-    // Define service discovery protocol;.
-    const String service_type = "_googlecast._tcp";
-    const int discovery_time = 5;
-
-    // Define callbacks for Flutter MDNS
-    List<CastDeviceInformation> devices = [];
-    DiscoveryCallbacks callbacks = new DiscoveryCallbacks(
-        onDiscovered: (ServiceInfo info) {
-          // Unsure?
-          // print(info.toString());
-        },
-
-        onDiscoveryStarted: () {
-          print("Google Cast device discovery started.");
-        },
-
-        onDiscoveryStopped: () {
-          print("Google Cast device discovery finished.");
-        },
-
-        onResolved: (ServiceInfo info) {
-          devices.add(new CastDeviceInformation(info));
-        }
-    );
-
-    FlutterMdnsPlugin mdns = new FlutterMdnsPlugin(
-        discoveryCallbacks: callbacks);
-    Timer(Duration(seconds: 3), () => mdns.startDiscovery(service_type));
-    Timer(
-        Duration(
-            seconds: 3 + discovery_time
-        ),
-        (){
-          () async {
-            // Device information discovery (via UPNP)
-            for(CastDeviceInformation device in devices) {
-              var castSettings = await ChromecastSettings.get(
-                  device.getServiceInfo().host
-                      .replaceAll(new RegExp(r'/'), "")
-              );
-
-              device.setChromecastSettings(
-                  castSettings
-              );
-            }
-
-            // Stop MDNS discovery
-            await mdns.stopDiscovery();
-          }().then((dynamic) => _chooseCastDevice(context, devices));
-        }
-    );
-  }
-
-  void _chooseCastDevice(BuildContext context, List<CastDeviceInformation> devices){
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext modalContext){
-        return new Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            /* Bottom Sheet Title */
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 15),
-              child: Text(
-                'Choose a cast device...',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontFamily: 'GlacialIndifference'
-                ),
-              )
-            ),
-
-            ListView.builder(
-              shrinkWrap: true,
-              itemCount: devices.length,
-              itemBuilder: (BuildContext listContext, int index){
-
-                CastDeviceInformation device = devices[index];
-
-                return new ListTile(
-                    leading: new Icon(Icons.tv),
-                    title: (device.getChromecastSettings() != null) ?
-                      new Text(device.getChromecastSettings().friendlyName)
-                      : device.getServiceInfo().name,
-                    subtitle: (device.getChromecastSettings() != null) ?
-                      new Text("${device.getChromecastSettings().manufacturer} ${device.getChromecastSettings().modelName}")
-                      : "Unknown",
-                    onTap: () => startCasting(device)
-                );
-              }
-            )
-          ],
-        );
-      }
-    );
-  }
-
-  startCasting(CastDeviceInformation device) async {
-
-    CastDevice dartCast = CastDevice(
-      host: device.getServiceInfo().host
-          .replaceAll(new RegExp(r'/'), ""),
-      port: device.getServiceInfo().port,
-      type: '_googlecast._tcp'
-    );
-    CastSender dartCastSender = CastSender(dartCast);
-
-    await dartCastSender.connect();
-    dartCastSender.launch("6569632D");
-
-    dartCastSender.loadPlaylist([CastMedia(
-      contentId: widget.url,
-      title: widget.title,
-      position: 0,
-      autoPlay: true
-    )].toList(), append: false);
-
-    dartCastSender.play();
-
-  }
-
-}
-
-class CastDeviceInformation {
-
-  ServiceInfo _info;
-  ChromecastSettings _meta;
-
-  CastDeviceInformation(ServiceInfo _info){
-    this._info = _info;
-    this._meta = _meta;
-  }
-
-  ServiceInfo getServiceInfo(){
-    return _info;
-  }
-
-  void setChromecastSettings(ChromecastSettings _meta){
-    this._meta = _meta;
-  }
-
-  ChromecastSettings getChromecastSettings(){
-    return this._meta;
   }
 
 }
