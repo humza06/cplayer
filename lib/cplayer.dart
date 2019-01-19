@@ -2,7 +2,7 @@ library cplayer;
 
 import 'dart:async';
 
-import 'package:cplayer/cast/Cast.dart';
+//import 'package:cplayer/cast/Cast.dart';
 import 'package:cplayer/res/UI.dart';
 import 'package:cplayer/ui/cplayer_progress.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +37,7 @@ class CPlayer extends StatefulWidget {
 class CPlayerState extends State<CPlayer> {
 
   Map<String, Timer> timerStates = new Map();
-  Cast _cast;
+  //Cast _cast;
 
   VideoPlayerController _controller;
   bool _isPlaying = false;
@@ -56,7 +56,7 @@ class CPlayerState extends State<CPlayer> {
     print(widget.url);
 
     // Initialise the cast driver
-    _cast = new Cast();
+    //_cast = new Cast();
 
     // Disable screen rotation and UI
     SystemChrome.setEnabledSystemUIOverlays([]);
@@ -112,7 +112,7 @@ class CPlayerState extends State<CPlayer> {
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
 
     // Stop cast device discovery
-    _cast.destroy();
+    //_cast.destroy();
 
     // Pass to super
     super.deactivate();
@@ -279,7 +279,7 @@ class CPlayerState extends State<CPlayer> {
                                                               borderRadius: BorderRadius.circular(100),
                                                               onTap: (){
                                                                 _controller.pause();
-                                                                _cast.chooseAndPlay(context, widget.url);
+                                                                //_cast.chooseAndPlay(context, widget.url);
                                                               },
                                                               child: new Padding(
                                                                 child: new Container(

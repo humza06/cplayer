@@ -15,15 +15,15 @@ dependencies:
   screen: "^0.0.4"
 
   # Chromecast Support (courtesy of terrabythia)
-  flutter_mdns_plugin:
-    git:
-      url: "https://github.com/terrabythia/flutter_mdns_plugin"
-      ref: "master"
+  #flutter_mdns_plugin:
+  #  git:
+  #    url: "https://github.com/terrabythia/flutter_mdns_plugin"
+  #    ref: "master"
 
-  dart_chromecast:
-    git:
-      url: "https://github.com/terrabythia/dart_chromecast"
-      ref: "master"
+  #dart_chromecast:
+  #  git:
+  #    url: "https://github.com/terrabythia/dart_chromecast"
+  #    ref: "master"
 
 dev_dependencies:
   flutter_test:
