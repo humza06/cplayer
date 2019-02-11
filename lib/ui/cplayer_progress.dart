@@ -28,7 +28,9 @@ class _CPlayerProgressState extends State<CPlayerProgress> {
   double _sliderValue = 0.0;
 
   _CPlayerProgressState(){
-    listener = (){
+    listener = () => (){
+      if(controller == null || !mounted) return;
+
       setState(() {});
     };
   }
