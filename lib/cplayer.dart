@@ -151,335 +151,380 @@ class CPlayerState extends State<CPlayer> {
     }
 
     return Scaffold(
-        backgroundColor: Colors.black,
-          body: Stack(
-              alignment: Alignment.center,
-              children: <Widget>[
-                // Player
-                GestureDetector(
-                  onTap: (){
-                    setState(() {
-                      _isControlsVisible = !_isControlsVisible;
-                    });
-                  },
+      backgroundColor: Colors.black,
+      body: Stack(
+          alignment: Alignment.center,
+          children: <Widget>[
+            // Player
+            GestureDetector(
+              onTap: (){
+                setState(() {
+                  _isControlsVisible = !_isControlsVisible;
+                });
+              },
+              child: LayoutBuilder(builder: (_, BoxConstraints constraints){
+                return Container(
+                  color: Colors.black,
+                  height: constraints.maxHeight,
+                  width: constraints.maxWidth,
                   child: Center(
-                      child: _controller != null && _controller.value.initialized
-                          ? InkWell(
-                          child: AspectRatio(
-                              aspectRatio: buildAspectRatio(_aspectRatio, context, _controller),
-                              child: VideoPlayer(_controller)
-                          )
-                      )
-                          : Container(child: CircularProgressIndicator(
-                        valueColor: new AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
-                      ))
-                  )
-                ),
+                    child: _controller != null && _controller.value.initialized
+                        ? AspectRatio(
+                        aspectRatio: buildAspectRatio(_aspectRatio, context, _controller),
+                        child: VideoPlayer(_controller)
+                    ) : Container()
+                  ),
+                );
+              })
+            ),
 
-                // Controls Layer
-                new IgnorePointer(
-                  ignoring: !_isControlsVisible,
-                  child: new AnimatedOpacity(
-                      opacity: _isControlsVisible ? 1.0 : 0.0,
-                      duration: new Duration(milliseconds: 200),
-                      child: Stack(
+            // Controls Layer
+            new IgnorePointer(
+              ignoring: !_isControlsVisible,
+              child: new AnimatedOpacity(
+                  opacity: _isControlsVisible ? 1.0 : 0.0,
+                  duration: new Duration(milliseconds: 200),
+                  child: Stack(
+                    children: <Widget>[
+                      GestureDetector(
+                        onTap: (){
+                          setState(() {
+                            _isControlsVisible = !_isControlsVisible;
+                          });
+                        },
+                        child: Container(
+                          child: PlayerGradient(),
+                          width: MediaQuery.of(context).size.width,
+                          height: MediaQuery.of(context).size.height,
+                        ),
+                      ),
+
+                      // Top Bar
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
                         children: <Widget>[
-                          GestureDetector(
-                            onTap: (){
-                              setState(() {
-                                _isControlsVisible = !_isControlsVisible;
-                              });
-                            },
-                            child: Container(
-                              child: PlayerGradient(),
-                              width: MediaQuery.of(context).size.width,
-                              height: MediaQuery.of(context).size.height,
-                            ),
-                          ),
+                          Container(
+                            height: 72,
+                              child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 10.0,
+                                      vertical: 3.0
+                                  ),
+                                  child: Builder(builder: (BuildContext ctx){
+                                    if(MediaQuery.of(ctx).size.width < 500) return Container();
 
-                          // Top Bar
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: <Widget>[
-                              Container(
-                                height: 72,
-                                  child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 10.0,
-                                          vertical: 3.0
-                                      ),
-                                      child: Builder(builder: (BuildContext ctx){
-                                        if(MediaQuery.of(ctx).size.width < 500) return Container();
-
-                                        return Row(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    return Row(
+                                      mainAxisSize: MainAxisSize.max,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: <Widget>[
+                                        Row(
                                           children: <Widget>[
-                                            Row(
-                                              children: <Widget>[
-                                                Container(
-                                                    margin: EdgeInsets.symmetric(horizontal: 10),
-                                                    child: new Material(
-                                                        color: Colors.transparent,
+                                            Container(
+                                                margin: EdgeInsets.symmetric(horizontal: 10),
+                                                child: new Material(
+                                                    color: Colors.transparent,
+                                                    borderRadius: BorderRadius.circular(100),
+                                                    child: new InkWell(
                                                         borderRadius: BorderRadius.circular(100),
-                                                        child: new InkWell(
-                                                            borderRadius: BorderRadius.circular(100),
-                                                            onTap: () => Navigator.pop(context),
-                                                            child: new Padding(
-                                                              child: new Container(
-                                                                  width: 28,
-                                                                  height: 28,
-                                                                  child: new Icon(
-                                                                      Icons.arrow_back,
-                                                                      size: 28,
-                                                                      color: Colors.white
-                                                                  )
-                                                              ),
-                                                              padding: EdgeInsets.all(10),
-                                                            )
+                                                        onTap: () => Navigator.pop(context),
+                                                        child: new Padding(
+                                                          child: new Container(
+                                                              width: 28,
+                                                              height: 28,
+                                                              child: new Icon(
+                                                                  Icons.arrow_back,
+                                                                  size: 28,
+                                                                  color: Colors.white
+                                                              )
+                                                          ),
+                                                          padding: EdgeInsets.all(10),
                                                         )
                                                     )
-                                                ),
-
-                                                // Title
-                                                new Padding(
-                                                  padding: EdgeInsets.all(20),
-                                                  child: Text(
-                                                    widget.title,
-                                                    style: TextStyle(
-                                                        fontFamily: 'GlacialIndifference',
-                                                        fontSize: 24
-                                                    ),
-                                                  ),
                                                 )
-                                              ],
                                             ),
 
-                                            /* End Buttons */
-                                            Container(
-                                              padding: EdgeInsets.all(10),
-                                              child: Wrap(
-                                                direction: Axis.vertical,
-                                                alignment: WrapAlignment.center,
-                                                crossAxisAlignment: WrapCrossAlignment.center,
-                                                children: <Widget>[
-                                                  /* Aspect Ratio */
-                                                  Container(
-                                                      margin: EdgeInsets.symmetric(horizontal: 10),
-                                                      child: new Material(
-                                                          color: Colors.transparent,
-                                                          borderRadius: BorderRadius.circular(100),
-                                                          child: new InkWell(
-                                                              borderRadius: BorderRadius.circular(100),
-                                                              onTap: _changeAspectRatio,
-                                                              child: new Padding(
-                                                                child: new Container(
-                                                                    width: 28,
-                                                                    height: 28,
-                                                                    child: new Icon(
-                                                                        Icons.aspect_ratio,
-                                                                        size: 28,
-                                                                        color: Colors.white
-                                                                    )
-                                                                ),
-                                                                padding: EdgeInsets.all(10),
-                                                              )
-                                                          )
-                                                      )
-                                                  ),
-
-                                                  /* Casting Button */
-                                                  Container(
-                                                      margin: EdgeInsets.symmetric(horizontal: 10),
-                                                      child: new Material(
-                                                          color: Colors.transparent,
-                                                          borderRadius: BorderRadius.circular(100),
-                                                          child: new InkWell(
-                                                              borderRadius: BorderRadius.circular(100),
-                                                              onTap: (){
-                                                                _controller.pause();
-                                                                //_cast.chooseAndPlay(context, widget.url);
-                                                              },
-                                                              child: new Padding(
-                                                                child: new Container(
-                                                                    width: 28,
-                                                                    height: 28,
-                                                                    child: new Icon(
-                                                                        Icons.cast,
-                                                                        size: 28,
-                                                                        color: Colors.white
-                                                                    )
-                                                                ),
-                                                                padding: EdgeInsets.all(10),
-                                                              )
-                                                          )
-                                                      )
-                                                  ),
-
-                                                  /* Options Button */
-                                                  Container(
-                                                      margin: EdgeInsets.symmetric(horizontal: 5),
-                                                      child: new Material(
-                                                          color: Colors.transparent,
-                                                          borderRadius: BorderRadius.circular(100),
-                                                          child: new InkWell(
-                                                              borderRadius: BorderRadius.circular(100),
-                                                              onTap: (){},
-                                                              child: new Padding(
-                                                                child: new Container(
-                                                                    width: 28,
-                                                                    height: 28,
-                                                                    child: new Icon(
-                                                                        Icons.more_vert,
-                                                                        size: 28,
-                                                                        color: Colors.white
-                                                                    )
-                                                                ),
-                                                                padding: EdgeInsets.all(10),
-                                                              )
-                                                          )
-                                                      )
-                                                  )
-                                                ],
+                                            // Title
+                                            new Padding(
+                                              padding: EdgeInsets.all(20),
+                                              child: Text(
+                                                widget.title,
+                                                style: TextStyle(
+                                                    fontFamily: 'GlacialIndifference',
+                                                    fontSize: 24
+                                                ),
                                               ),
                                             )
                                           ],
-                                        );
-                                      })
-                                  )
-                              )
-                            ],
-                          ),
+                                        ),
 
-                          // Center Controls
-                          Column(
+                                        /* End Buttons */
+                                        Container(
+                                          padding: EdgeInsets.all(10),
+                                          child: Wrap(
+                                            direction: Axis.vertical,
+                                            alignment: WrapAlignment.center,
+                                            crossAxisAlignment: WrapCrossAlignment.center,
+                                            children: <Widget>[
+                                              /* Aspect Ratio */
+                                              Container(
+                                                  margin: EdgeInsets.symmetric(horizontal: 10),
+                                                  child: new Material(
+                                                      color: Colors.transparent,
+                                                      borderRadius: BorderRadius.circular(100),
+                                                      child: new InkWell(
+                                                          borderRadius: BorderRadius.circular(100),
+                                                          onTap: _changeAspectRatio,
+                                                          child: new Padding(
+                                                            child: new Container(
+                                                                width: 28,
+                                                                height: 28,
+                                                                child: new Icon(
+                                                                    Icons.aspect_ratio,
+                                                                    size: 28,
+                                                                    color: Colors.white
+                                                                )
+                                                            ),
+                                                            padding: EdgeInsets.all(10),
+                                                          )
+                                                      )
+                                                  )
+                                              ),
+
+                                              /* Casting Button */
+                                              Container(
+                                                  margin: EdgeInsets.symmetric(horizontal: 10),
+                                                  child: new Material(
+                                                      color: Colors.transparent,
+                                                      borderRadius: BorderRadius.circular(100),
+                                                      child: new InkWell(
+                                                          borderRadius: BorderRadius.circular(100),
+                                                          onTap: (){
+                                                            bool _wasPlaying = false;
+
+                                                            if(_controller.value.isPlaying) _wasPlaying = true;
+                                                            if(_wasPlaying) _controller.pause();
+
+                                                            showDialog(
+                                                              context: context,
+                                                              builder: (BuildContext context){
+                                                                return WillPopScope(
+                                                                  onWillPop: () async {
+                                                                    if(_wasPlaying) _controller.play();
+                                                                    return true;
+                                                                  },
+                                                                  child: AlertDialog(
+                                                                    title: Text("Under Development", style: TextStyle(
+                                                                        fontFamily: 'GlacialIndifference',
+                                                                        fontSize: 24
+                                                                    )),
+                                                                    content: Text("Sorry, we're still implementing casting functionality.", style: TextStyle(
+                                                                        fontSize: 16
+                                                                    )),
+                                                                    actions: <Widget>[
+                                                                      FlatButton(
+                                                                        child: Text("OK"),
+                                                                        onPressed: (){
+                                                                          Navigator.of(context).pop();
+                                                                          if(_wasPlaying) _controller.play();
+                                                                        },
+                                                                        textColor: Theme.of(context).primaryColor,
+                                                                      )
+                                                                    ],
+                                                                  )
+                                                                );
+                                                              }
+                                                            );
+                                                            //_controller.pause();
+                                                            //_cast.chooseAndPlay(context, widget.url);
+                                                          },
+                                                          child: new Padding(
+                                                            child: new Container(
+                                                                width: 28,
+                                                                height: 28,
+                                                                child: new Icon(
+                                                                    Icons.cast,
+                                                                    size: 28,
+                                                                    color: Colors.white
+                                                                )
+                                                            ),
+                                                            padding: EdgeInsets.all(10),
+                                                          )
+                                                      )
+                                                  )
+                                              ),
+
+                                              /* Options Button */
+                                              Container(
+                                                  margin: EdgeInsets.symmetric(horizontal: 5),
+                                                  child: new Material(
+                                                      color: Colors.transparent,
+                                                      borderRadius: BorderRadius.circular(100),
+                                                      child: new InkWell(
+                                                          borderRadius: BorderRadius.circular(100),
+                                                          onTap: (){},
+                                                          child: new Padding(
+                                                            child: new Container(
+                                                                width: 28,
+                                                                height: 28,
+                                                                child: new Icon(
+                                                                    Icons.more_vert,
+                                                                    size: 28,
+                                                                    color: Colors.white
+                                                                )
+                                                            ),
+                                                            padding: EdgeInsets.all(10),
+                                                          )
+                                                      )
+                                                  )
+                                              )
+                                            ],
+                                          ),
+                                        )
+                                      ],
+                                    );
+                                  })
+                              )
+                          )
+                        ],
+                      ),
+
+                      // Center Controls
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          new Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
-                              new Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: <Widget>[
 
-                                  /* Play/pause button */
-                                  (_controller != null && _controller.value.initialized && !_controller.value.isBuffering) ? new Container(
-                                    child: new Material(
-                                      color: Colors.transparent,
-                                      clipBehavior: Clip.antiAlias,
-                                      borderRadius: BorderRadius.circular(1000),
-                                      child: new InkWell(
-                                        borderRadius: BorderRadius.circular(1000),
-                                        onTap: (){
-                                          setState((){
-                                            if(_controller.value.isPlaying) {
-                                              _controller.pause();
-                                            }else{
-                                              _controller.play();
-                                            }
-                                          });
-                                        },
-                                        child: new Padding(
-                                          padding: EdgeInsets.all(25.0),
-                                          child: Center(
-                                            child: new Icon(
-                                              (_controller != null && _controller.value.isPlaying ?
-                                                Icons.pause :
-                                                Icons.play_arrow
-                                              ),
-                                              size: 96.0,
-                                              color: Colors.white
-                                            )
-                                          )
+                              /* Play/pause button */
+                              (_controller != null && _controller.value.initialized && !_controller.value.isBuffering) ? new Container(
+                                child: new Material(
+                                  color: Colors.transparent,
+                                  clipBehavior: Clip.antiAlias,
+                                  borderRadius: BorderRadius.circular(1000),
+                                  child: new InkWell(
+                                    borderRadius: BorderRadius.circular(1000),
+                                    onTap: (){
+                                      setState((){
+                                        if(_controller.value.isPlaying) {
+                                          _controller.pause();
+                                        }else{
+                                          _controller.play();
+                                        }
+                                      });
+                                    },
+                                    child: new Padding(
+                                      padding: EdgeInsets.all(25.0),
+                                      child: Center(
+                                        child: new Icon(
+                                          (_controller != null && _controller.value.isPlaying ?
+                                            Icons.pause :
+                                            Icons.play_arrow
+                                          ),
+                                          size: 96.0,
+                                          color: Colors.white
                                         )
                                       )
-                                    ),
-                                  ) : Container()
-
-                                ],
-                              )
-                            ],
-                          ),
-
-                          // Bottom Bar
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: <Widget>[
-                              Container(
-                                  height: 52.0,
-                                  child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 10.0,
-                                          vertical: 3.0
-                                      ),
-                                      child: Row(
-                                        children: <Widget>[
-                                          /* Start Progress Label */
-                                          new Padding(
-                                            padding: EdgeInsets.only(left: 5.0),
-                                            child: new Text(
-                                              "${formatTimestamp(
-                                                _controller.value.position.inMilliseconds
-                                              )}",
-                                              maxLines: 1,
-                                              style: TextStyle(
-                                                  fontSize: 14.0
-                                              )
-                                            )
-                                          ),
-
-                                          /* Progress Bar */
-                                          new Expanded(
-                                            child: new Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 5.0
-                                              ),
-                                              child: new CPlayerProgress(
-                                                _controller,
-                                                activeColor: Theme.of(context).primaryColor,
-                                                inactiveColor: Colors.white54,
-                                              )
-                                            )
-                                          ),
-
-                                          /* End Progress Label */
-                                          new Padding(
-                                            padding: EdgeInsets.only(right: 5.0),
-                                            child: new Text(
-                                              "${formatTimestamp(_total)}",
-                                              maxLines: 1,
-                                              style: TextStyle(
-                                                  fontSize: 14.0
-                                              )
-                                            )
-                                          )
-                                        ],
-                                      )
+                                    )
                                   )
-                              )
+                                ),
+                              ) : Container()
+
                             ],
                           )
                         ],
+                      ),
+
+                      // Bottom Bar
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: <Widget>[
+                          Container(
+                              height: 52.0,
+                              child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 10.0,
+                                      vertical: 3.0
+                                  ),
+                                  child: Row(
+                                    children: <Widget>[
+                                      /* Start Progress Label */
+                                      new Padding(
+                                        padding: EdgeInsets.only(left: 5.0),
+                                        child: new Text(
+                                          formatTimestamp(
+                                            _controller.value.position.inMilliseconds
+                                          ),
+                                          maxLines: 1,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            letterSpacing: 0.1
+                                          )
+                                        )
+                                      ),
+
+                                      /* Progress Bar */
+                                      new Expanded(
+                                        child: new Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 5.0
+                                          ),
+                                          child: IgnorePointer(
+                                            ignoring: _controller == null || !_controller.value.initialized,
+                                            child: CPlayerProgress(
+                                              _controller,
+                                              activeColor: _controller == null || !_controller.value.initialized || _controller.value.isBuffering ? Colors.grey : Theme.of(context).primaryColor,
+                                              inactiveColor: Colors.white54,
+                                            ),
+                                          )
+                                        )
+                                      ),
+
+                                      /* End Progress Label */
+                                      new Padding(
+                                        padding: EdgeInsets.only(right: 5.0),
+                                        child: new Text(
+                                          (_controller == null || !_controller.value.initialized)
+                                              ? "--:--:--" : "${formatTimestamp(_total)}",
+                                          maxLines: 1,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            letterSpacing: 0.1
+                                          )
+                                        )
+                                      )
+                                    ],
+                                  )
+                              )
+                          )
+                        ],
                       )
-                  ),
-                ),
+                    ],
+                  )
+              ),
+            ),
 
-                // Center Panel
-                Center(
-                  child: (_getCenterPanel())
-                ),
+            // Center Panel
+            Center(
+              child: (_getCenterPanel())
+            ),
 
-                // Buffering loader
-                IgnorePointer(
-                  child: new AnimatedOpacity(
-                    opacity: _controller.value.isBuffering ? 1.0 : 0.0,
-                    duration: new Duration(milliseconds: 200),
-                    child: Center(
-                      child: Container(child: CircularProgressIndicator(
-                        valueColor: new AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor)
-                      ))
+            // Buffering loader
+            IgnorePointer(
+              child: new AnimatedOpacity(
+                opacity: (_controller.value.isBuffering || _controller == null || !_controller.value.initialized) ? 1.0 : 0.0,
+                duration: new Duration(milliseconds: 200),
+                child: LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints){
+                  return Container(child: Center(
+                    child: CircularProgressIndicator(
+                      valueColor: new AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor)
                     )
-                  ),
-                )
-              ]
-          )
+                  ), width: constraints.maxWidth, height: constraints.maxHeight);
+                })
+              ),
+            )
+          ]
+      )
     );
   }
 

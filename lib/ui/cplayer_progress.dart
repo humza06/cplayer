@@ -49,7 +49,6 @@ class _CPlayerProgressState extends State<CPlayerProgress> {
 
   @override
   Widget build(BuildContext context) {
-
     _slider = new Slider(
       value: (
           controller.value.position != null ?
@@ -78,7 +77,6 @@ class _CPlayerProgressState extends State<CPlayerProgress> {
       inactiveColor: widget.inactiveColor,
     );
     return _slider;
-
   }
 
 }
