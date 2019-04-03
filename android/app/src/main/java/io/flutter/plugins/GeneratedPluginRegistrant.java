@@ -1,7 +1,6 @@
 package io.flutter.plugins;
 
 import io.flutter.plugin.common.PluginRegistry;
-import eu.sndr.fluttermdnsplugin.FlutterMdnsPlugin;
 import flutter.plugins.screen.screen.ScreenPlugin;
 import io.flutter.plugins.videoplayer.VideoPlayerPlugin;
 import xyz.apollotv.cplayer.CplayerPlugin;
@@ -14,7 +13,6 @@ public final class GeneratedPluginRegistrant {
     if (alreadyRegisteredWith(registry)) {
       return;
     }
-    FlutterMdnsPlugin.registerWith(registry.registrarFor("eu.sndr.fluttermdnsplugin.FlutterMdnsPlugin"));
     ScreenPlugin.registerWith(registry.registrarFor("flutter.plugins.screen.screen.ScreenPlugin"));
     VideoPlayerPlugin.registerWith(registry.registrarFor("io.flutter.plugins.videoplayer.VideoPlayerPlugin"));
     CplayerPlugin.registerWith(registry.registrarFor("xyz.apollotv.cplayer.CplayerPlugin"));
