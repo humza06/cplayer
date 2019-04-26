@@ -11,19 +11,26 @@ dependencies:
   flutter:
     sdk: flutter
 
-  video_player: 0.9.0
+  video_player:
+    git:
+      url: git://github.com/flutter/plugins.git
+      ref: master
+      path: packages/video_player
+
   screen: ^0.0.4
+  connectivity: 0.4.3+1
+  http: ^0.12.0
 
   # Chromecast Support (courtesy of terrabythia)
   #flutter_mdns_plugin:
   #  git:
-  #    url: "https://github.com/terrabythia/flutter_mdns_plugin"
-  #    ref: "master"
+  #    url: git://github.com/terrabythia/flutter_mdns_plugin
+  #    ref: master
 
   #dart_chromecast:
   #  git:
-  #    url: "https://github.com/terrabythia/dart_chromecast"
-  #    ref: "master"
+  #    url: https://github.com/terrabythia/dart_chromecast
+  #    ref: master
 
 dev_dependencies:
   flutter_test:

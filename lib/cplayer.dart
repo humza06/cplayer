@@ -4,11 +4,14 @@ import 'dart:async';
 
 //import 'package:cplayer/cast/Cast.dart';
 import 'package:cplayer/res/UI.dart';
+import 'package:cplayer/ui/cplayer_interrupt.dart';
 import 'package:cplayer/ui/cplayer_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:screen/screen.dart';
 import 'package:video_player/video_player.dart';
+import 'package:connectivity/connectivity.dart';
+import 'package:http/http.dart' as http;
 
 class CPlayer extends StatefulWidget {
 
@@ -40,22 +43,23 @@ class CPlayerState extends State<CPlayer> {
   //Cast _cast;
 
   VideoPlayerController _controller;
-  bool _isPlaying = false;
+  VoidCallback _controllerListener;
+  StreamSubscription<ConnectivityResult> networkSubscription;
+
+  Widget _interruptWidget;
+
+  bool _isBuffering = false;
   bool _isControlsVisible = true;
   int _aspectRatio = 0;
-  int _total = 0;
+  Duration lastValidPosition;
 
   Function _getCenterPanel = (){
     return Container();
   };
 
-  VoidCallback _controllerListener;
-  bool initialized = false;
-
   @override
   void initState(){
     _beginInitState();
-    super.initState();
 
     // Initialise the cast driver
     //_cast = new Cast();
@@ -65,20 +69,26 @@ class CPlayerState extends State<CPlayer> {
       if (!this.mounted || _controller == null) {
         return;
       }
+      
+      if(_controller.value.initialized)
+        lastValidPosition = _controller.value.position;
 
-      setState(() {});
+      try {
+        /* buffering check */
+        var rangeIncludes = (DurationRange range, Duration duration){
+          return range.start <= duration && range.end.inMilliseconds + 1 >= duration.inMilliseconds;
+        };
+        bool included = false;
+        _controller.value.buffered.forEach(
+          (DurationRange range){
+            included |= rangeIncludes(range, _controller.value.position);
+          }
+        );
+        _isBuffering = !included;
+        /* End: buffering check */
 
-      if (initialized != _controller.value.initialized) {
-        initialized = _controller.value.initialized;
         setState(() {});
-      }
-
-      final bool isPlaying = _controller.value.isPlaying;
-      if(isPlaying != _isPlaying){
-        setState((){
-          _isPlaying = isPlaying;
-        });
-      }
+      }catch(_){}
     };
 
     _controller = VideoPlayerController.network(
@@ -98,8 +108,58 @@ class CPlayerState extends State<CPlayer> {
         _isControlsVisible = false;
       });
 
-      _total = _controller.value.duration.inMilliseconds;
+      bool connectivityCheckInactive = true;
+      VoidCallback handleOfflinePlayback;
+      handleOfflinePlayback = (){
+        if(!_controller.value.initialized) {
+          // UNABLE TO CONNECT TO THE INTERNET (show error)
+          _interruptWidget = ErrorInterruptMixin(
+              icon: Icons.offline_bolt,
+              title: "You're offline...",
+              message: "Failed to connect to the internet. Please check your connection."
+          );
+
+          _controller.removeListener(handleOfflinePlayback);
+        }
+      };
+
+      // Activate network connectivity subscription.
+      networkSubscription = Connectivity().onConnectivityChanged.listen((ConnectivityResult result) async {
+        _controller.removeListener(handleOfflinePlayback);
+
+        if(connectivityCheckInactive){
+          connectivityCheckInactive = false;
+          return;
+        }
+
+        print("Detected connection change.");
+
+        http.Response connectivityCheck;
+        try {
+          connectivityCheck =
+          await http.head("https://static.apollotv.xyz/generate_204");
+        }catch(ex) { connectivityCheck = null; }
+
+        if(connectivityCheck != null && connectivityCheck.statusCode == 204){
+          // ABLE TO CONNECT TO THE INTERNET (re-initialize the player)
+          print("Re-initializing player to position $lastValidPosition...");
+          Duration resumePosition = lastValidPosition;
+
+          if(!_controller.value.initialized) await _controller.initialize();
+          await _controller.play();
+          await _controller.seekTo(resumePosition);
+          _isBuffering = false;
+          _interruptWidget = null;
+          setState(() {});
+        }else{
+          _controller.addListener(handleOfflinePlayback);
+        }
+      });
+
+      //_total = _controller.value.duration.inMilliseconds;
     });
+
+    super.initState();
   }
 
   Future<void> _beginInitState() async {
@@ -130,6 +190,9 @@ class CPlayerState extends State<CPlayer> {
 
     // Stop cast device discovery
     //_cast.destroy();
+
+    // Cancel network connectivity subscription.
+    networkSubscription.cancel();
 
     // Pass to super
     super.deactivate();
@@ -168,11 +231,12 @@ class CPlayerState extends State<CPlayer> {
                   height: constraints.maxHeight,
                   width: constraints.maxWidth,
                   child: Center(
-                    child: _controller != null && _controller.value.initialized
+                    child: _interruptWidget != null ? _interruptWidget :
+                      _controller != null && _controller.value.initialized
                         ? AspectRatio(
-                        aspectRatio: buildAspectRatio(_aspectRatio, context, _controller),
-                        child: VideoPlayer(_controller)
-                    ) : Container()
+                          aspectRatio: buildAspectRatio(_aspectRatio, context, _controller),
+                          child: VideoPlayer(_controller)
+                        ) : Container()
                   ),
                 );
               })
@@ -397,7 +461,7 @@ class CPlayerState extends State<CPlayer> {
                             children: <Widget>[
 
                               /* Play/pause button */
-                              (_controller != null && _controller.value.initialized && !_controller.value.isBuffering) ? new Container(
+                              (_controller != null && _controller.value.initialized && !_isBuffering) ? new Container(
                                 child: new Material(
                                   color: Colors.transparent,
                                   clipBehavior: Clip.antiAlias,
@@ -452,9 +516,11 @@ class CPlayerState extends State<CPlayer> {
                                       new Padding(
                                         padding: EdgeInsets.only(left: 5.0),
                                         child: new Text(
-                                          formatTimestamp(
-                                            _controller.value.position.inMilliseconds
-                                          ),
+                                          lastValidPosition != null && !_controller.value.initialized
+                                            ? formatTimestamp(lastValidPosition.inMilliseconds)
+                                            : formatTimestamp(
+                                              _controller.value.position.inMilliseconds
+                                            ),
                                           maxLines: 1,
                                           style: TextStyle(
                                             fontSize: 14,
@@ -473,7 +539,7 @@ class CPlayerState extends State<CPlayer> {
                                             ignoring: _controller == null || !_controller.value.initialized,
                                             child: CPlayerProgress(
                                               _controller,
-                                              activeColor: _controller == null || !_controller.value.initialized || _controller.value.isBuffering ? Colors.grey : Theme.of(context).primaryColor,
+                                              activeColor: _controller == null || !_controller.value.initialized || _isBuffering ? Colors.grey : Theme.of(context).primaryColor,
                                               inactiveColor: Colors.white54,
                                             ),
                                           )
@@ -483,15 +549,15 @@ class CPlayerState extends State<CPlayer> {
                                       /* End Progress Label */
                                       new Padding(
                                         padding: EdgeInsets.only(right: 5.0),
-                                        child: new Text(
-                                          (_controller == null || !_controller.value.initialized)
-                                              ? "--:--:--" : "${formatTimestamp(_total)}",
-                                          maxLines: 1,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            letterSpacing: 0.1
+                                        child: (_controller == null || !_controller.value.initialized)
+                                          ? Container()
+                                          : new Text("${formatTimestamp(_controller.value.duration.inMilliseconds)}",
+                                              maxLines: 1,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                letterSpacing: 0.1
+                                              )
                                           )
-                                        )
                                       )
                                     ],
                                   )
@@ -512,7 +578,7 @@ class CPlayerState extends State<CPlayer> {
             // Buffering loader
             IgnorePointer(
               child: new AnimatedOpacity(
-                opacity: (_controller.value.isBuffering || _controller == null || !_controller.value.initialized) ? 1.0 : 0.0,
+                opacity: (_isBuffering || _controller == null || !_controller.value.initialized) && _interruptWidget == null ? 1.0 : 0.0,
                 duration: new Duration(milliseconds: 200),
                 child: LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints){
                   return Container(child: Center(
