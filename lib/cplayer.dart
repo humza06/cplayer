@@ -53,6 +53,8 @@ class CPlayerState extends State<CPlayer> {
   int _aspectRatio = 0;
   Duration lastValidPosition;
 
+  int _timeDelta = 0;
+
   Function _getCenterPanel = (){
     return Container();
   };
@@ -242,15 +244,18 @@ class CPlayerState extends State<CPlayer> {
               })
             ),
 
-            // Controls Layer
-            new IgnorePointer(
-              ignoring: !_isControlsVisible,
-              child: new AnimatedOpacity(
-                  opacity: _isControlsVisible ? 1.0 : 0.0,
-                  duration: new Duration(milliseconds: 200),
-                  child: Stack(
-                    children: <Widget>[
-                      GestureDetector(
+            // Skip back / forwards controls
+            LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints){
+              return Stack(
+                alignment: AlignmentDirectional.center,
+                children: <Widget>[
+
+                  IgnorePointer(
+                    ignoring: !_isControlsVisible,
+                    child: AnimatedOpacity(
+                      opacity: _isControlsVisible ? 1.0 : 0.0,
+                      duration: new Duration(milliseconds: 200),
+                      child: GestureDetector(
                         onTap: (){
                           setState(() {
                             _isControlsVisible = !_isControlsVisible;
@@ -262,7 +267,128 @@ class CPlayerState extends State<CPlayer> {
                           height: MediaQuery.of(context).size.height,
                         ),
                       ),
+                    ),
+                  ),
 
+                  /* Back 10s button */
+                  Positioned(
+                      top: 0,
+                      bottom: 0,
+                      left: 0,
+                      right: (1 - 0.4) * constraints.maxWidth,
+                      child: Builder(builder: (BuildContext context){
+                        bool _isVisible = _timeDelta < 0;
+
+                        return GestureDetector(
+                          onTap: () => setState((){
+                            _isControlsVisible = !_isControlsVisible;
+                          }),
+                          onDoubleTap: () async {
+                            await _controller.pause();
+
+                            if(!_isVisible) {
+                              setState(() {
+                                _timeDelta = -10;
+                              });
+
+                              await Future.delayed(Duration(seconds: 3));
+                              await _applyTimeDelta();
+                            }else{
+                              setState(() {
+                                _timeDelta -= 10;
+                              });
+                            }
+                          },
+                          child: Material(
+                            color: Colors.transparent,
+                            clipBehavior: Clip.antiAlias,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.only(
+                                    topRight: Radius.circular(10000),
+                                    bottomRight: Radius.circular(10000)
+                                )
+                            ),
+                            child: AnimatedOpacity(
+                                opacity: _isControlsVisible || _isVisible ? 1.0 : 0.0,
+                                duration: new Duration(milliseconds: 200),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: <Widget>[
+                                    Icon(Icons.fast_rewind, size: 32),
+                                    _isVisible ? Text("- ${-_timeDelta}s") : Container()
+                                  ],
+                                )
+                            ),
+                          ),
+                        );
+                      })
+                  ),
+
+                  /* Forward 10s button */
+                  Positioned(
+                    top: 0,
+                    bottom: 0,
+                    right: 0,
+                    left: (1 - 0.4) * constraints.maxWidth,
+                    child: Builder(builder: (BuildContext context){
+                      bool _isVisible = _timeDelta > 0;
+
+                      return GestureDetector(
+                        onTap: () => setState((){
+                          _isControlsVisible = !_isControlsVisible;
+                        }),
+                        onDoubleTap: () async {
+                          await _controller.pause();
+
+                          if(!_isVisible) {
+                            setState(() {
+                              _timeDelta = 10;
+                            });
+
+                            await Future.delayed(Duration(seconds: 3));
+                            await _applyTimeDelta();
+                          }else{
+                            setState(() {
+                              _timeDelta += 10;
+                            });
+                          }
+                        },
+                        child: Material(
+                          color: Colors.transparent,
+                          clipBehavior: Clip.antiAlias,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(10000),
+                                  bottomLeft: Radius.circular(10000)
+                              )
+                          ),
+                          child: AnimatedOpacity(
+                              opacity: _isControlsVisible || _isVisible ? 1.0 : 0.0,
+                              duration: new Duration(milliseconds: 200),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: <Widget>[
+                                  Icon(Icons.fast_forward, size: 32),
+                                  _isVisible ? Text("+ ${_timeDelta}s") : Container()
+                                ],
+                              )
+                          ),
+                        ),
+                      );
+                    })
+                  )
+                ],
+              );
+            }),
+
+            // Controls Layer
+            new IgnorePointer(
+              ignoring: !_isControlsVisible,
+              child: new AnimatedOpacity(
+                  opacity: _isControlsVisible ? 1.0 : 0.0,
+                  duration: new Duration(milliseconds: 200),
+                  child: Stack(
+                    children: <Widget>[
                       // Top Bar
                       Column(
                         mainAxisAlignment: MainAxisAlignment.start,
@@ -457,7 +583,7 @@ class CPlayerState extends State<CPlayer> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
                           new Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: <Widget>[
 
                               /* Play/pause button */
@@ -465,9 +591,10 @@ class CPlayerState extends State<CPlayer> {
                                 child: new Material(
                                   color: Colors.transparent,
                                   clipBehavior: Clip.antiAlias,
-                                  borderRadius: BorderRadius.circular(1000),
+                                  borderRadius: BorderRadius.circular(100),
                                   child: new InkWell(
-                                    borderRadius: BorderRadius.circular(1000),
+                                    highlightColor: const Color(0x05FFFFFF),
+                                    borderRadius: BorderRadius.circular(100),
                                     onTap: (){
                                       setState((){
                                         if(_controller.value.isPlaying) {
@@ -478,15 +605,15 @@ class CPlayerState extends State<CPlayer> {
                                       });
                                     },
                                     child: new Padding(
-                                      padding: EdgeInsets.all(25.0),
+                                      padding: EdgeInsets.all(10.0),
                                       child: Center(
                                         child: new Icon(
                                           (_controller != null && _controller.value.isPlaying ?
                                             Icons.pause :
                                             Icons.play_arrow
                                           ),
-                                          size: 96.0,
-                                          color: Colors.white
+                                          size: 72.0,
+                                          color: Colors.white,
                                         )
                                       )
                                     )
@@ -564,7 +691,7 @@ class CPlayerState extends State<CPlayer> {
                               )
                           )
                         ],
-                      )
+                      ),
                     ],
                   )
               ),
@@ -592,6 +719,19 @@ class CPlayerState extends State<CPlayer> {
           ]
       )
     );
+  }
+
+  _applyTimeDelta() async {
+    Duration _newPosition =
+        Duration(microseconds: _controller.value.position.inMicroseconds)
+            + Duration(seconds: _timeDelta);
+
+    if(_newPosition < Duration(seconds: 0)) _newPosition = Duration(seconds: 0);
+    if(_newPosition > _controller.value.duration) _newPosition = _controller.value.duration;
+
+    _timeDelta = 0;
+    await _controller.seekTo(_newPosition);
+    await _controller.play();
   }
 
   ///
