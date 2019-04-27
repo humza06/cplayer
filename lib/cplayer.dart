@@ -246,138 +246,141 @@ class CPlayerState extends State<CPlayer> {
 
             // Skip back / forwards controls
             LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints){
-              return Stack(
-                alignment: AlignmentDirectional.center,
-                children: <Widget>[
+              return IgnorePointer(
+                ignoring: _controller == null || !_controller.value.initialized || _interruptWidget != null,
+                child: Stack(
+                  alignment: AlignmentDirectional.center,
+                  children: <Widget>[
 
-                  IgnorePointer(
-                    ignoring: !_isControlsVisible,
-                    child: AnimatedOpacity(
-                      opacity: _isControlsVisible ? 1.0 : 0.0,
-                      duration: new Duration(milliseconds: 200),
-                      child: GestureDetector(
-                        onTap: (){
-                          setState(() {
-                            _isControlsVisible = !_isControlsVisible;
-                          });
-                        },
-                        child: Container(
-                          child: PlayerGradient(),
-                          width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height,
+                    IgnorePointer(
+                      ignoring: !_isControlsVisible,
+                      child: AnimatedOpacity(
+                        opacity: _isControlsVisible ? 1.0 : 0.0,
+                        duration: new Duration(milliseconds: 200),
+                        child: GestureDetector(
+                          onTap: (){
+                            setState(() {
+                              _isControlsVisible = !_isControlsVisible;
+                            });
+                          },
+                          child: Container(
+                            child: PlayerGradient(),
+                            width: MediaQuery.of(context).size.width,
+                            height: MediaQuery.of(context).size.height,
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  /* Back 10s button */
-                  Positioned(
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      right: (1 - 0.4) * constraints.maxWidth,
-                      child: Builder(builder: (BuildContext context){
-                        bool _isVisible = _timeDelta < 0;
+                    /* Back 10s button */
+                    Positioned(
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        right: (1 - 0.4) * constraints.maxWidth,
+                        child: Builder(builder: (BuildContext context){
+                          bool _isVisible = _timeDelta < 0;
 
-                        return GestureDetector(
-                          onTap: () => setState((){
-                            _isControlsVisible = !_isControlsVisible;
-                          }),
-                          onDoubleTap: () async {
-                            await _controller.pause();
+                          return GestureDetector(
+                            onTap: () => setState((){
+                              _isControlsVisible = !_isControlsVisible;
+                            }),
+                            onDoubleTap: () async {
+                              await _controller.pause();
 
-                            if(!_isVisible) {
-                              setState(() {
-                                _timeDelta = -10;
-                              });
+                              if(!_isVisible) {
+                                setState(() {
+                                  _timeDelta = -10;
+                                });
 
-                              await Future.delayed(Duration(seconds: 3));
-                              await _applyTimeDelta();
-                            }else{
-                              setState(() {
-                                _timeDelta -= 10;
-                              });
-                            }
-                          },
-                          child: Material(
-                            color: Colors.transparent,
-                            clipBehavior: Clip.antiAlias,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.only(
-                                    topRight: Radius.circular(10000),
-                                    bottomRight: Radius.circular(10000)
-                                )
+                                await Future.delayed(Duration(seconds: 3));
+                                await _applyTimeDelta();
+                              }else{
+                                setState(() {
+                                  _timeDelta -= 10;
+                                });
+                              }
+                            },
+                            child: Material(
+                              color: Colors.transparent,
+                              clipBehavior: Clip.antiAlias,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.only(
+                                      topRight: Radius.circular(10000),
+                                      bottomRight: Radius.circular(10000)
+                                  )
+                              ),
+                              child: AnimatedOpacity(
+                                  opacity: _isControlsVisible || _isVisible ? 1.0 : 0.0,
+                                  duration: new Duration(milliseconds: 200),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: <Widget>[
+                                      Icon(Icons.fast_rewind, size: 32),
+                                      _isVisible ? Text("- ${-_timeDelta}s") : Container()
+                                    ],
+                                  )
+                              ),
                             ),
-                            child: AnimatedOpacity(
-                                opacity: _isControlsVisible || _isVisible ? 1.0 : 0.0,
-                                duration: new Duration(milliseconds: 200),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: <Widget>[
-                                    Icon(Icons.fast_rewind, size: 32),
-                                    _isVisible ? Text("- ${-_timeDelta}s") : Container()
-                                  ],
-                                )
+                          );
+                        })
+                    ),
+
+                    /* Forward 10s button */
+                    Positioned(
+                        top: 0,
+                        bottom: 0,
+                        right: 0,
+                        left: (1 - 0.4) * constraints.maxWidth,
+                        child: Builder(builder: (BuildContext context){
+                          bool _isVisible = _timeDelta > 0;
+
+                          return GestureDetector(
+                            onTap: () => setState((){
+                              _isControlsVisible = !_isControlsVisible;
+                            }),
+                            onDoubleTap: () async {
+                              await _controller.pause();
+
+                              if(!_isVisible) {
+                                setState(() {
+                                  _timeDelta = 10;
+                                });
+
+                                await Future.delayed(Duration(seconds: 3));
+                                await _applyTimeDelta();
+                              }else{
+                                setState(() {
+                                  _timeDelta += 10;
+                                });
+                              }
+                            },
+                            child: Material(
+                              color: Colors.transparent,
+                              clipBehavior: Clip.antiAlias,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(10000),
+                                      bottomLeft: Radius.circular(10000)
+                                  )
+                              ),
+                              child: AnimatedOpacity(
+                                  opacity: _isControlsVisible || _isVisible ? 1.0 : 0.0,
+                                  duration: new Duration(milliseconds: 200),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: <Widget>[
+                                      Icon(Icons.fast_forward, size: 32),
+                                      _isVisible ? Text("+ ${_timeDelta}s") : Container()
+                                    ],
+                                  )
+                              ),
                             ),
-                          ),
-                        );
-                      })
-                  ),
-
-                  /* Forward 10s button */
-                  Positioned(
-                    top: 0,
-                    bottom: 0,
-                    right: 0,
-                    left: (1 - 0.4) * constraints.maxWidth,
-                    child: Builder(builder: (BuildContext context){
-                      bool _isVisible = _timeDelta > 0;
-
-                      return GestureDetector(
-                        onTap: () => setState((){
-                          _isControlsVisible = !_isControlsVisible;
-                        }),
-                        onDoubleTap: () async {
-                          await _controller.pause();
-
-                          if(!_isVisible) {
-                            setState(() {
-                              _timeDelta = 10;
-                            });
-
-                            await Future.delayed(Duration(seconds: 3));
-                            await _applyTimeDelta();
-                          }else{
-                            setState(() {
-                              _timeDelta += 10;
-                            });
-                          }
-                        },
-                        child: Material(
-                          color: Colors.transparent,
-                          clipBehavior: Clip.antiAlias,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(10000),
-                                  bottomLeft: Radius.circular(10000)
-                              )
-                          ),
-                          child: AnimatedOpacity(
-                              opacity: _isControlsVisible || _isVisible ? 1.0 : 0.0,
-                              duration: new Duration(milliseconds: 200),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: <Widget>[
-                                  Icon(Icons.fast_forward, size: 32),
-                                  _isVisible ? Text("+ ${_timeDelta}s") : Container()
-                                ],
-                              )
-                          ),
-                        ),
-                      );
-                    })
-                  )
-                ],
+                          );
+                        })
+                    )
+                  ],
+                ),
               );
             }),
 
