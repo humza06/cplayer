@@ -1,0 +1,6 @@
+[submodule "core"]
+	path = core
+	url = https://github.com/NBTX/flutter_vlc_player
+[submodule "flutter_vlc_player"]
+	path = flutter_vlc_player
+	url = https://github.com/NBTX/flutter_vlc_player

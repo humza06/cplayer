@@ -9,9 +9,10 @@ import 'package:cplayer/ui/cplayer_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:screen/screen.dart';
-import 'package:video_player/video_player.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:http/http.dart' as http;
+import 'package:video_player/video_player.dart';
+import 'package:flutter_vlc_player/vlc_player_controller.dart';
 
 class CPlayer extends StatefulWidget {
 
