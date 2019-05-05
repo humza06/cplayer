@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_vlc_player/vlc_player_controller.dart';
+import 'package:flutter_vlc_player/vlc_player.dart';
 
 class CPlayerProgress extends StatefulWidget {
 
@@ -24,20 +24,20 @@ class _CPlayerProgressState extends State<CPlayerProgress> {
   VoidCallback listener;
   VlcPlayerController get controller => widget.controller;
 
-  Slider _slider;
   double _sliderValue = 0.0;
-
-  _CPlayerProgressState(){
-    listener = () => (){
-      if(controller == null || !mounted) return;
-
-      setState(() {});
-    };
-  }
 
   @override
   void initState(){
     super.initState();
+
+    listener = (){
+      if(controller == null || !mounted) return;
+
+      setState(() {
+        _sliderValue = controller.currentTime.toDouble();
+      });
+    };
+
     controller.addListener(listener);
   }
 
@@ -49,26 +49,22 @@ class _CPlayerProgressState extends State<CPlayerProgress> {
 
   @override
   Widget build(BuildContext context) {
-    _slider = new Slider(
-      value: (
-          controller.currentTime != null ?
-          controller.currentTime
-              : 0.0
-      ),
+    return new Slider(
+      value: _sliderValue,
       onChanged: (newValue){
-        controller.setCurrentTime(newValue.toInt());
+        controller.seek(newValue.toInt());
       },
       onChangeStart: (oldValue){
         controller.pause();
       },
       onChangeEnd: (newValue){
-        controller.setCurrentTime(newValue.toInt());
+        controller.seek(newValue.toInt());
         controller.play();
       },
       min: 0.0,
       max: (
           controller.totalTime != null ?
-          controller.totalTime
+          controller.totalTime.toDouble()
               : 0.0
       ),
       // Watched: side of the slider between thumb and minimum value.
@@ -76,7 +72,6 @@ class _CPlayerProgressState extends State<CPlayerProgress> {
       // To watch: side of the slider between thumb and maximum value.
       inactiveColor: widget.inactiveColor,
     );
-    return _slider;
   }
 
 }

@@ -12,13 +12,12 @@ import 'package:screen/screen.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_vlc_player/vlc_player.dart';
-import 'package:flutter_vlc_player/vlc_player_controller.dart';
 
 class CPlayer extends StatefulWidget {
 
   final String mimeType;
   final String title;
-  final String url;
+  final String url; // = "http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_60fps_normal.mp4";
   final Color primaryColor;
   final Color accentColor;
   final Color highlightColor;
@@ -49,7 +48,7 @@ class CPlayerState extends State<CPlayer> {
 
   Widget _interruptWidget;
 
-  bool _isBuffering = false;
+  //bool _isBuffering = false;
   bool _isControlsVisible = true;
   int _aspectRatio = 0;
   int lastValidPosition;
@@ -72,95 +71,75 @@ class CPlayerState extends State<CPlayer> {
       if (!this.mounted || _controller == null) {
         return;
       }
+
+      setState(() {});
       
       if(_controller.initialized)
         lastValidPosition = _controller.currentTime;
-
-      /*try {
-        /* buffering check */
-        var rangeIncludes = (DurationRange range, Duration duration){
-          return range.start <= duration && range.end.inMilliseconds + 1 >= duration.inMilliseconds;
-        };
-        bool included = false;
-        _controller.value.buffered.forEach(
-          (DurationRange range){
-            included |= rangeIncludes(range, _controller.value.position);
-          }
-        );
-        _isBuffering = !included;
-        /* End: buffering check */
-
-        setState(() {});
-      }catch(_){}*/
     };
 
-    _controller = VlcPlayerController()
-      ..addListener(_controllerListener)
-      ..initialize(
-        widget.url
-    ).then((_){
-      // VIDEO PLAYER: Ensure the first frame is shown after the video is
-      // initialized, even before the play button has been pressed.
-      //if(!this.mounted) return;
-      setState((){});
+    _controller = VlcPlayerController(
+      onInit: (){
+        // VIDEO PLAYER: Ensure the first frame is shown after the video is
+        // initialized, even before the play button has been pressed.
+        //if(!this.mounted) return;
+        setState((){});
 
-      // Set up controller, and autoplay.
-      _controller.play();
+        Timer(Duration(seconds: 5), (){
+          _isControlsVisible = false;
+        });
 
-      Timer(Duration(seconds: 5), (){
-        _isControlsVisible = false;
-      });
+        bool connectivityCheckInactive = true;
+        VoidCallback handleOfflinePlayback;
+        handleOfflinePlayback = (){
+          if(!_controller.initialized) {
+            // UNABLE TO CONNECT TO THE INTERNET (show error)
+            _interruptWidget = ErrorInterruptMixin(
+                icon: Icons.offline_bolt,
+                title: "You're offline...",
+                message: "Failed to connect to the internet. Please check your connection."
+            );
 
-      bool connectivityCheckInactive = true;
-      VoidCallback handleOfflinePlayback;
-      handleOfflinePlayback = (){
-        if(!_controller.initialized) {
-          // UNABLE TO CONNECT TO THE INTERNET (show error)
-          _interruptWidget = ErrorInterruptMixin(
-              icon: Icons.offline_bolt,
-              title: "You're offline...",
-              message: "Failed to connect to the internet. Please check your connection."
-          );
+            _controller.removeListener(handleOfflinePlayback);
+          }
+        };
 
+        // Activate network connectivity subscription.
+        networkSubscription = Connectivity().onConnectivityChanged.listen((ConnectivityResult result) async {
           _controller.removeListener(handleOfflinePlayback);
-        }
-      };
 
-      // Activate network connectivity subscription.
-      networkSubscription = Connectivity().onConnectivityChanged.listen((ConnectivityResult result) async {
-        _controller.removeListener(handleOfflinePlayback);
+          if(connectivityCheckInactive){
+            connectivityCheckInactive = false;
+            return;
+          }
 
-        if(connectivityCheckInactive){
-          connectivityCheckInactive = false;
-          return;
-        }
+          print("Detected connection change.");
 
-        print("Detected connection change.");
+          http.Response connectivityCheck;
+          try {
+            connectivityCheck =
+            await http.head("https://static.apollotv.xyz/generate_204");
+          }catch(ex) { connectivityCheck = null; }
 
-        http.Response connectivityCheck;
-        try {
-          connectivityCheck =
-          await http.head("https://static.apollotv.xyz/generate_204");
-        }catch(ex) { connectivityCheck = null; }
+          if(connectivityCheck != null && connectivityCheck.statusCode == 204){
+            // ABLE TO CONNECT TO THE INTERNET (re-initialize the player)
+            print("Re-initializing player to position $lastValidPosition...");
+            int resumePosition = lastValidPosition;
 
-        if(connectivityCheck != null && connectivityCheck.statusCode == 204){
-          // ABLE TO CONNECT TO THE INTERNET (re-initialize the player)
-          print("Re-initializing player to position $lastValidPosition...");
-          int resumePosition = lastValidPosition;
+            if(!_controller.initialized) await _controller.setStreamUrl(widget.url);
+            await _controller.play();
+            await _controller.seek(resumePosition);
+            //_isBuffering = false;
+            _interruptWidget = null;
+            setState(() {});
+          }else{
+            _controller.addListener(handleOfflinePlayback);
+          }
+        });
 
-          if(!_controller.initialized) await _controller.setStreamUrl(widget.url);
-          await _controller.play();
-          await _controller.setCurrentTime(resumePosition);
-          _isBuffering = false;
-          _interruptWidget = null;
-          setState(() {});
-        }else{
-          _controller.addListener(handleOfflinePlayback);
-        }
-      });
-
-      //_total = _controller.value.duration.inMilliseconds;
-    });
+        //_total = _controller.value.duration.inMilliseconds;
+      }
+    )..addListener(_controllerListener);
 
     super.initState();
   }
@@ -185,8 +164,10 @@ class CPlayerState extends State<CPlayer> {
 
     // Dispose controller
     //_controller.setVolume(0.0);
-    _controller.removeListener(_controllerListener);
-    _controller.dispose();
+    if(_controller != null) {
+      _controller.removeListener(_controllerListener);
+      _controller.dispose();
+    }
 
     // Cancel wake-lock
     Screen.keepOn(false);
@@ -195,7 +176,7 @@ class CPlayerState extends State<CPlayer> {
     //_cast.destroy();
 
     // Cancel network connectivity subscription.
-    networkSubscription.cancel();
+    if(networkSubscription != null) networkSubscription.cancel();
 
     // Pass to super
     super.deactivate();
@@ -234,13 +215,12 @@ class CPlayerState extends State<CPlayer> {
                   height: constraints.maxHeight,
                   width: constraints.maxWidth,
                   child: Center(
-                    child: _interruptWidget != null ? _interruptWidget :
-                      _controller != null && _controller.initialized
-                        ? VlcPlayer(
-                          url: widget.url,
-                          controller: _controller,
-                          aspectRatio: buildAspectRatio(_aspectRatio, context, _controller),
-                        ) : Container()
+                    child: VlcPlayer(
+                      url: widget.url,
+                      controller: _controller,
+                      aspectRatio: 16 / 9,//buildAspectRatio(_aspectRatio, context, _controller),
+                      placeholder: Container(),
+                    )
                   ),
                 );
               })
@@ -592,7 +572,7 @@ class CPlayerState extends State<CPlayer> {
                             children: <Widget>[
 
                               /* Play/pause button */
-                              (_controller != null && _controller.initialized && !_isBuffering) ? new Container(
+                              (_controller != null && _controller.initialized && !_controller.buffering) ? new Container(
                                 child: new Material(
                                   color: Colors.transparent,
                                   clipBehavior: Clip.antiAlias,
@@ -648,7 +628,7 @@ class CPlayerState extends State<CPlayer> {
                                       new Padding(
                                         padding: EdgeInsets.only(left: 5.0),
                                         child: new Text(
-                                          lastValidPosition != null && !_controller.initialized
+                                          lastValidPosition != null && (!_controller.initialized)
                                             ? formatTimestamp(lastValidPosition)
                                             : formatTimestamp(
                                               _controller.currentTime
@@ -671,7 +651,7 @@ class CPlayerState extends State<CPlayer> {
                                             ignoring: _controller == null || !_controller.initialized,
                                             child: CPlayerProgress(
                                               _controller,
-                                              activeColor: _controller == null || !_controller.initialized || _isBuffering ? Colors.grey : Theme.of(context).primaryColor,
+                                              activeColor: _controller == null || !_controller.initialized || _controller.buffering ? Colors.grey : Theme.of(context).primaryColor,
                                               inactiveColor: Colors.white54,
                                             ),
                                           )
@@ -710,7 +690,7 @@ class CPlayerState extends State<CPlayer> {
             // Buffering loader
             IgnorePointer(
               child: new AnimatedOpacity(
-                opacity: (_isBuffering || _controller == null || !_controller.initialized) && _interruptWidget == null ? 1.0 : 0.0,
+                opacity: (_controller.buffering || _controller == null || !_controller.initialized) && _interruptWidget == null ? 1.0 : 0.0,
                 duration: new Duration(milliseconds: 200),
                 child: LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints){
                   return Container(child: Center(
@@ -732,7 +712,7 @@ class CPlayerState extends State<CPlayer> {
     if(_newPosition > _controller.totalTime) _newPosition = _controller.totalTime;
 
     _timeDelta = 0;
-    await _controller.setCurrentTime(_newPosition);
+    await _controller.seek(_newPosition);
     await _controller.play();
   }
 
@@ -740,6 +720,7 @@ class CPlayerState extends State<CPlayer> {
   /// Formats a timestamp in milliseconds.
   ///
   String formatTimestamp(int millis){
+    if(millis == null) return "00:00:00";
     int seconds = ((millis ~/ 1000)%60);
     int minutes = ((millis ~/ (1000*60))%60);
     int hours = ((millis ~/ (1000*60*60))%24);
@@ -765,6 +746,8 @@ class CPlayerState extends State<CPlayer> {
   /// Choices: fit, 3-2, 16-9, default.
   ///
   double buildAspectRatio(int ratio, BuildContext context, VlcPlayerController controller){
+    if(controller == null || !controller.initialized) ratio = 1;
+
     switch(ratio) {
       case 1: /* FIT */
         return MediaQuery.of(context).size.width / MediaQuery.of(context).size.height;
@@ -790,7 +773,7 @@ class CPlayerState extends State<CPlayer> {
   /// Change Aspect Ratio
   ///
   void _changeAspectRatio(){
-    if(!_controller.value.isPlaying) {
+    if(!_controller.playing) {
       return;
     }
 
