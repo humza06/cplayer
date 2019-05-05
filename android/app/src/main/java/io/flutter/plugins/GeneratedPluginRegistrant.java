@@ -4,7 +4,6 @@ import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugins.connectivity.ConnectivityPlugin;
 import software.solid.fluttervlcplayer.FlutterVlcPlayerPlugin;
 import flutter.plugins.screen.screen.ScreenPlugin;
-import io.flutter.plugins.videoplayer.VideoPlayerPlugin;
 import xyz.apollotv.cplayer.CplayerPlugin;
 
 /**
@@ -18,7 +17,6 @@ public final class GeneratedPluginRegistrant {
     ConnectivityPlugin.registerWith(registry.registrarFor("io.flutter.plugins.connectivity.ConnectivityPlugin"));
     FlutterVlcPlayerPlugin.registerWith(registry.registrarFor("software.solid.fluttervlcplayer.FlutterVlcPlayerPlugin"));
     ScreenPlugin.registerWith(registry.registrarFor("flutter.plugins.screen.screen.ScreenPlugin"));
-    VideoPlayerPlugin.registerWith(registry.registrarFor("io.flutter.plugins.videoplayer.VideoPlayerPlugin"));
     CplayerPlugin.registerWith(registry.registrarFor("xyz.apollotv.cplayer.CplayerPlugin"));
   }
 

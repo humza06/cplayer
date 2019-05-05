@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
+import 'package:flutter_vlc_player/vlc_player_controller.dart';
 
 class CPlayerProgress extends StatefulWidget {
 
-  final VideoPlayerController controller;
+  final VlcPlayerController controller;
 
   final Color activeColor;
   final Color inactiveColor;
@@ -22,7 +22,7 @@ class CPlayerProgress extends StatefulWidget {
 class _CPlayerProgressState extends State<CPlayerProgress> {
 
   VoidCallback listener;
-  VideoPlayerController get controller => widget.controller;
+  VlcPlayerController get controller => widget.controller;
 
   Slider _slider;
   double _sliderValue = 0.0;
@@ -51,24 +51,24 @@ class _CPlayerProgressState extends State<CPlayerProgress> {
   Widget build(BuildContext context) {
     _slider = new Slider(
       value: (
-          controller.value.position != null ?
-          controller.value.position.inMilliseconds.toDouble()
+          controller.currentTime != null ?
+          controller.currentTime
               : 0.0
       ),
       onChanged: (newValue){
-        controller.seekTo(new Duration(milliseconds: newValue.toInt()));
+        controller.setCurrentTime(newValue.toInt());
       },
       onChangeStart: (oldValue){
         controller.pause();
       },
       onChangeEnd: (newValue){
-        controller.seekTo(new Duration(milliseconds: newValue.toInt()));
+        controller.setCurrentTime(newValue.toInt());
         controller.play();
       },
       min: 0.0,
       max: (
-          controller.value.duration != null ?
-          controller.value.duration.inMilliseconds.toDouble()
+          controller.totalTime != null ?
+          controller.totalTime
               : 0.0
       ),
       // Watched: side of the slider between thumb and minimum value.

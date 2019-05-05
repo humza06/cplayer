@@ -11,7 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:screen/screen.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:http/http.dart' as http;
-import 'package:video_player/video_player.dart';
+import 'package:flutter_vlc_player/vlc_player.dart';
 import 'package:flutter_vlc_player/vlc_player_controller.dart';
 
 class CPlayer extends StatefulWidget {
@@ -43,7 +43,7 @@ class CPlayerState extends State<CPlayer> {
   Map<String, Timer> timerStates = new Map();
   //Cast _cast;
 
-  VideoPlayerController _controller;
+  VlcPlayerController _controller;
   VoidCallback _controllerListener;
   StreamSubscription<ConnectivityResult> networkSubscription;
 
@@ -52,7 +52,7 @@ class CPlayerState extends State<CPlayer> {
   bool _isBuffering = false;
   bool _isControlsVisible = true;
   int _aspectRatio = 0;
-  Duration lastValidPosition;
+  int lastValidPosition;
 
   int _timeDelta = 0;
 
@@ -73,10 +73,10 @@ class CPlayerState extends State<CPlayer> {
         return;
       }
       
-      if(_controller.value.initialized)
-        lastValidPosition = _controller.value.position;
+      if(_controller.initialized)
+        lastValidPosition = _controller.currentTime;
 
-      try {
+      /*try {
         /* buffering check */
         var rangeIncludes = (DurationRange range, Duration duration){
           return range.start <= duration && range.end.inMilliseconds + 1 >= duration.inMilliseconds;
@@ -91,20 +91,20 @@ class CPlayerState extends State<CPlayer> {
         /* End: buffering check */
 
         setState(() {});
-      }catch(_){}
+      }catch(_){}*/
     };
 
-    _controller = VideoPlayerController.network(
+    _controller = VlcPlayerController()
+      ..addListener(_controllerListener)
+      ..initialize(
         widget.url
-    )..addListener(_controllerListener)..initialize().then((_){
+    ).then((_){
       // VIDEO PLAYER: Ensure the first frame is shown after the video is
       // initialized, even before the play button has been pressed.
       //if(!this.mounted) return;
       setState((){});
 
       // Set up controller, and autoplay.
-      _controller.setLooping(false);
-      _controller.setVolume(1.0);
       _controller.play();
 
       Timer(Duration(seconds: 5), (){
@@ -114,7 +114,7 @@ class CPlayerState extends State<CPlayer> {
       bool connectivityCheckInactive = true;
       VoidCallback handleOfflinePlayback;
       handleOfflinePlayback = (){
-        if(!_controller.value.initialized) {
+        if(!_controller.initialized) {
           // UNABLE TO CONNECT TO THE INTERNET (show error)
           _interruptWidget = ErrorInterruptMixin(
               icon: Icons.offline_bolt,
@@ -146,11 +146,11 @@ class CPlayerState extends State<CPlayer> {
         if(connectivityCheck != null && connectivityCheck.statusCode == 204){
           // ABLE TO CONNECT TO THE INTERNET (re-initialize the player)
           print("Re-initializing player to position $lastValidPosition...");
-          Duration resumePosition = lastValidPosition;
+          int resumePosition = lastValidPosition;
 
-          if(!_controller.value.initialized) await _controller.initialize();
+          if(!_controller.initialized) await _controller.setStreamUrl(widget.url);
           await _controller.play();
-          await _controller.seekTo(resumePosition);
+          await _controller.setCurrentTime(resumePosition);
           _isBuffering = false;
           _interruptWidget = null;
           setState(() {});
@@ -184,7 +184,7 @@ class CPlayerState extends State<CPlayer> {
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
 
     // Dispose controller
-    _controller.setVolume(0.0);
+    //_controller.setVolume(0.0);
     _controller.removeListener(_controllerListener);
     _controller.dispose();
 
@@ -235,10 +235,11 @@ class CPlayerState extends State<CPlayer> {
                   width: constraints.maxWidth,
                   child: Center(
                     child: _interruptWidget != null ? _interruptWidget :
-                      _controller != null && _controller.value.initialized
-                        ? AspectRatio(
+                      _controller != null && _controller.initialized
+                        ? VlcPlayer(
+                          url: widget.url,
+                          controller: _controller,
                           aspectRatio: buildAspectRatio(_aspectRatio, context, _controller),
-                          child: VideoPlayer(_controller)
                         ) : Container()
                   ),
                 );
@@ -248,7 +249,7 @@ class CPlayerState extends State<CPlayer> {
             // Skip back / forwards controls
             LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints){
               return IgnorePointer(
-                ignoring: _controller == null || !_controller.value.initialized || _interruptWidget != null,
+                ignoring: _controller == null || !_controller.initialized || _interruptWidget != null,
                 child: Stack(
                   alignment: AlignmentDirectional.center,
                   children: <Widget>[
@@ -495,7 +496,7 @@ class CPlayerState extends State<CPlayer> {
                                                           onTap: (){
                                                             bool _wasPlaying = false;
 
-                                                            if(_controller.value.isPlaying) _wasPlaying = true;
+                                                            if(_controller.playing) _wasPlaying = true;
                                                             if(_wasPlaying) _controller.pause();
 
                                                             showDialog(
@@ -591,7 +592,7 @@ class CPlayerState extends State<CPlayer> {
                             children: <Widget>[
 
                               /* Play/pause button */
-                              (_controller != null && _controller.value.initialized && !_isBuffering) ? new Container(
+                              (_controller != null && _controller.initialized && !_isBuffering) ? new Container(
                                 child: new Material(
                                   color: Colors.transparent,
                                   clipBehavior: Clip.antiAlias,
@@ -601,7 +602,7 @@ class CPlayerState extends State<CPlayer> {
                                     borderRadius: BorderRadius.circular(100),
                                     onTap: (){
                                       setState((){
-                                        if(_controller.value.isPlaying) {
+                                        if(_controller.playing) {
                                           _controller.pause();
                                         }else{
                                           _controller.play();
@@ -612,7 +613,7 @@ class CPlayerState extends State<CPlayer> {
                                       padding: EdgeInsets.all(10.0),
                                       child: Center(
                                         child: new Icon(
-                                          (_controller != null && _controller.value.isPlaying ?
+                                          (_controller != null && _controller.playing ?
                                             Icons.pause :
                                             Icons.play_arrow
                                           ),
@@ -647,10 +648,10 @@ class CPlayerState extends State<CPlayer> {
                                       new Padding(
                                         padding: EdgeInsets.only(left: 5.0),
                                         child: new Text(
-                                          lastValidPosition != null && !_controller.value.initialized
-                                            ? formatTimestamp(lastValidPosition.inMilliseconds)
+                                          lastValidPosition != null && !_controller.initialized
+                                            ? formatTimestamp(lastValidPosition)
                                             : formatTimestamp(
-                                              _controller.value.position.inMilliseconds
+                                              _controller.currentTime
                                             ),
                                           maxLines: 1,
                                           style: TextStyle(
@@ -667,10 +668,10 @@ class CPlayerState extends State<CPlayer> {
                                             horizontal: 5.0
                                           ),
                                           child: IgnorePointer(
-                                            ignoring: _controller == null || !_controller.value.initialized,
+                                            ignoring: _controller == null || !_controller.initialized,
                                             child: CPlayerProgress(
                                               _controller,
-                                              activeColor: _controller == null || !_controller.value.initialized || _isBuffering ? Colors.grey : Theme.of(context).primaryColor,
+                                              activeColor: _controller == null || !_controller.initialized || _isBuffering ? Colors.grey : Theme.of(context).primaryColor,
                                               inactiveColor: Colors.white54,
                                             ),
                                           )
@@ -680,9 +681,9 @@ class CPlayerState extends State<CPlayer> {
                                       /* End Progress Label */
                                       new Padding(
                                         padding: EdgeInsets.only(right: 5.0),
-                                        child: (_controller == null || !_controller.value.initialized)
+                                        child: (_controller == null || !_controller.initialized)
                                           ? Container()
-                                          : new Text("${formatTimestamp(_controller.value.duration.inMilliseconds)}",
+                                          : new Text("${formatTimestamp(_controller.totalTime)}",
                                               maxLines: 1,
                                               style: TextStyle(
                                                 fontSize: 14,
@@ -709,7 +710,7 @@ class CPlayerState extends State<CPlayer> {
             // Buffering loader
             IgnorePointer(
               child: new AnimatedOpacity(
-                opacity: (_isBuffering || _controller == null || !_controller.value.initialized) && _interruptWidget == null ? 1.0 : 0.0,
+                opacity: (_isBuffering || _controller == null || !_controller.initialized) && _interruptWidget == null ? 1.0 : 0.0,
                 duration: new Duration(milliseconds: 200),
                 child: LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints){
                   return Container(child: Center(
@@ -726,15 +727,12 @@ class CPlayerState extends State<CPlayer> {
   }
 
   _applyTimeDelta() async {
-    Duration _newPosition =
-        Duration(microseconds: _controller.value.position.inMicroseconds)
-            + Duration(seconds: _timeDelta);
-
-    if(_newPosition < Duration(seconds: 0)) _newPosition = Duration(seconds: 0);
-    if(_newPosition > _controller.value.duration) _newPosition = _controller.value.duration;
+    int _newPosition = _controller.currentTime + (_timeDelta * 1000);
+    if(_newPosition < 0) _newPosition = 0;
+    if(_newPosition > _controller.totalTime) _newPosition = _controller.totalTime;
 
     _timeDelta = 0;
-    await _controller.seekTo(_newPosition);
+    await _controller.setCurrentTime(_newPosition);
     await _controller.play();
   }
 
@@ -766,7 +764,7 @@ class CPlayerState extends State<CPlayer> {
   /// Returns a generated aspect ratio.
   /// Choices: fit, 3-2, 16-9, default.
   ///
-  double buildAspectRatio(int ratio, BuildContext context, VideoPlayerController controller){
+  double buildAspectRatio(int ratio, BuildContext context, VlcPlayerController controller){
     switch(ratio) {
       case 1: /* FIT */
         return MediaQuery.of(context).size.width / MediaQuery.of(context).size.height;
@@ -784,7 +782,7 @@ class CPlayerState extends State<CPlayer> {
         return 21/9;
 
       default:
-        return controller.value.aspectRatio;
+        return controller.aspectRatio;
     }
   }
 

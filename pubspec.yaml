@@ -1,6 +1,6 @@
 name: cplayer
 description: A player for ApolloTV, written in Dart for the Flutter framework.
-version: 0.0.2
+version: 0.1.0
 author: NBTX
 homepage: https://apollotv.xyz/
 
@@ -11,14 +11,16 @@ dependencies:
   flutter:
     sdk: flutter
 
-  video_player:
-    git:
-      url: git://github.com/flutter/plugins.git
-      ref: master
-      path: packages/video_player
+#  video_player:
+#    git:
+#      url: git://github.com/flutter/plugins.git
+#      ref: master
+#      path: packages/video_player
 
   flutter_vlc_player:
-    path: "./flutter_vlc_player"
+    git:
+      url: git://github.com/NBTX/flutter_vlc_player.git
+      ref: master
 
   screen: ^0.0.4
   connectivity: 0.4.3+1
