@@ -8,13 +8,17 @@ import 'package:cplayer/ui/cplayer_interrupt.dart';
 import 'package:cplayer/ui/cplayer_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kamino/generated/i18n.dart';
+import 'package:kamino/ui/interface.dart';
 import 'package:screen/screen.dart';
 import 'package:video_player/video_player.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:http/http.dart' as http;
+import 'package:kamino/vendor/struct/VendorService.dart';
 
 class CPlayer extends StatefulWidget {
 
+  final VendorService vendorService;
   final String mimeType;
   final String title;
   final String url;
@@ -24,6 +28,7 @@ class CPlayer extends StatefulWidget {
 
   CPlayer({
     Key key,
+    @required this.vendorService,
     @required this.mimeType,
     @required this.title,
     @required this.url,
@@ -554,15 +559,15 @@ class CPlayerState extends State<CPlayer> {
                                                       borderRadius: BorderRadius.circular(100),
                                                       child: new InkWell(
                                                           borderRadius: BorderRadius.circular(100),
-                                                          onTap: (){},
+                                                          onTap: () => _showOptionsMenu(ctx),
                                                           child: new Padding(
                                                             child: new Container(
                                                                 width: 28,
                                                                 height: 28,
                                                                 child: new Icon(
-                                                                    Icons.more_vert,
-                                                                    size: 28,
-                                                                    color: Colors.white
+                                                                  Icons.more_vert,
+                                                                  size: 28,
+                                                                  color: Colors.white
                                                                 )
                                                             ),
                                                             padding: EdgeInsets.all(10),
@@ -862,6 +867,48 @@ class CPlayerState extends State<CPlayer> {
       });
     });
     /* END: show center panel */
+  }
+
+  _showOptionsMenu(BuildContext _viewContext) async {
+    showModalBottomSheet(context: _viewContext, builder: (BuildContext context){
+      return Container(
+        child: Wrap(
+          children: <Widget>[
+            ListTile(
+              leading: Icon(Icons.content_copy),
+              title: Text(
+                "Copy Stream URL",
+                style: TextStyle(
+                  fontFamily: 'GlacialIndifference',
+                  fontSize: 16
+                ),
+              ),
+              onTap: (){
+                Clipboard.setData(
+                    new ClipboardData(text: widget.url));
+                Navigator.of(context).pop();
+                Interface.showSnackbar(
+                    S.of(_viewContext).url_copied,
+                    context: _viewContext
+                );
+              },
+            ),
+
+            ListTile(
+              title: Text(
+                "CPlayer (Exo) \u2022 ApolloTV",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontFamily: 'GlacialIndifference',
+                  fontSize: 14
+                ),
+              )
+            )
+          ],
+        ),
+      );
+    });
   }
 
 }

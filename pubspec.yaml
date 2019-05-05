@@ -17,6 +17,9 @@ dependencies:
       ref: master
       path: packages/video_player
 
+  kamino:
+    path: ../
+
   screen: ^0.0.4
   connectivity: 0.4.3+1
   http: ^0.12.0
